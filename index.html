@@ -178,6 +178,45 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
     <button class="btn-primary" onclick="doLogin()">🔐 Đăng nhập</button>
     <div id="authMsg"></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;text-align:center;line-height:1.6">
+      Lần đầu đăng nhập cần Firebase Rules cho phép write.<br>
+      <a href="#" onclick="showRulesHelp()" style="color:#3B82F6;text-decoration:none;font-weight:600">📋 Xem hướng dẫn Firebase Rules</a>
+    </div>
+  </div>
+</div>
+
+<!-- Rules Help Modal -->
+<div id="rulesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:18px;font-weight:800;color:#1E3A8A;margin-bottom:16px">📋 Firebase Rules — Kích hoạt lần đầu</div>
+    <p style="font-size:13px;color:#374151;margin-bottom:12px">Để web tự kích hoạt tài khoản lần đầu, cần cho phép write <strong>1 lần</strong>:</p>
+    <div style="background:#0F172A;border-radius:8px;padding:14px;font-size:12px;font-family:monospace;color:#E2E8F0;margin-bottom:16px;white-space:pre">{
+  "rules": {
+    "Library":    { ".read": true },
+    "SystemData": { ".read": true },
+    "Users": {
+      "$uid": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "Projects":  { "$uid": { ".read": true } },
+    "Estimates": { "$uid": { ".read": true } },
+    ".read": false,
+    ".write": false
+  }
+}</div>
+    <p style="font-size:12px;color:#EF4444;font-weight:600;margin-bottom:16px">⚠️ Sau khi tất cả user đã đăng nhập lần đầu → đổi ".write": false lại để bảo mật!</p>
+    <div style="display:flex;gap:10px">
+      <a href="https://console.firebase.google.com" target="_blank"
+         style="flex:1;height:38px;background:#1E3A8A;color:#fff;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center">
+        Mở Firebase Console →
+      </a>
+      <button onclick="document.getElementById('rulesModal').style.display='none'"
+              style="height:38px;padding:0 16px;background:#F1F5F9;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+        Đóng
+      </button>
+    </div>
   </div>
 </div>
 
@@ -347,18 +386,34 @@ async function doLogin() {
       msg.textContent = '❌ Tài khoản chưa được Admin phê duyệt!'; return;
     }
 
-    // PasswordWeb = SHA256 (lưu bởi desktop app khi tạo/đổi mật khẩu)
-    const storedWeb = data.PasswordWeb || '';
-    const hash256   = await sha256(p);
-    const ok = storedWeb && storedWeb === hash256;
-    if (!ok) {
-      // Fallback: nếu chưa có PasswordWeb, hướng dẫn user
-      if (!storedWeb) {
-        msg.textContent = '⚠️ Tài khoản này chưa hỗ trợ đăng nhập Web. Admin cần đổi mật khẩu một lần từ desktop để kích hoạt.';
-      } else {
-        msg.textContent = '❌ Sai mật khẩu!';
+    // Verify password: PasswordWeb (SHA256) hoặc tự kích hoạt lần đầu
+    const storedWeb    = data.PasswordWeb || '';
+    const storedBcrypt = data.Password    || '';
+    const hash256      = await sha256(p);
+
+    if (storedWeb) {
+      // Normal: check SHA256
+      if (storedWeb !== hash256) { msg.textContent = '❌ Sai mật khẩu!'; return; }
+    } else {
+      // Lần đầu: chưa có PasswordWeb → ghi SHA256 lên Firebase (self-activate)
+      msg.textContent = '⏳ Kích hoạt tài khoản web lần đầu...';
+      try {
+        const writeUrl = `${FB_URL}/Users/${u}/PasswordWeb.json`;
+        const wr = await fetch(writeUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(hash256)
+        });
+        if (!wr.ok) throw new Error('Write failed ' + wr.status);
+        // Verify write succeeded by reading back
+        const check = await fbGet('Users/' + u + '/PasswordWeb');
+        if (check !== hash256) { msg.textContent = '❌ Không thể kích hoạt — kiểm tra Firebase Rules (cần .write=true cho Users/{uid}/PasswordWeb)'; return; }
+        showToast('✅ Tài khoản đã kích hoạt Web thành công!', '#059669');
+      } catch(e) {
+        // Write failed (Firebase rules blocking) → show helpful message
+        msg.textContent = '⚠️ Chưa kích hoạt web. Vào Firebase Console → Rules → cho phép write Users node, đăng nhập 1 lần, rồi lock lại.';
+        return;
       }
-      return;
     }
     currentUser = { username: u, fullName: data.FullName || u, role: data.Role || 'User' };
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
@@ -643,6 +698,10 @@ async function loadEstimate() {
         </div>
       </div>`).join('');
   } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dự toán: '+e.message+'</div>'; }
+}
+
+function showRulesHelp() {
+  document.getElementById('rulesModal').style.display='flex';
 }
 
 // ── Init ────────────────────────────────────────────────────────────
