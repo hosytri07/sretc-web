@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#0F172A"/>
+<meta name="description" content="S-RETC Toolkit Web Companion — Hỗ trợ kỹ sư cầu đường"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>"/>
 <title>S-RETC Toolkit — Web</title>
 <style>
 /* ── Reset & Variables ────────────────────────────────────────── */
@@ -156,6 +159,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+body.dark{--bg:#0F172A;--card:#1E293B;--border:#334155;--text:#E2E8F0;--muted:#94A3B8}
+body.dark .topbar{background:#020617}
+body.dark .auth-card{background:#1E293B;color:#E2E8F0}
+body.dark .field input{background:#0F172A;color:#E2E8F0;border-color:#334155}
+body.dark .proj-card,.dark .coord-panel,.dark .chat-container{background:#1E293B;border-color:#334155}
+body.dark .lib-item{background:#1E293B;border-color:#334155}
+body.dark .lib-item:hover{border-color:#60A5FA}
 </style>
 </head>
 <body>
@@ -233,12 +243,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button onclick="showPage('library')" id="navLib">📚 Thư viện</button>
       <button onclick="showPage('coords')" id="navCoords">🗺️ Toạ độ</button>
       <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
+      <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
+      <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
     </div>
     <div class="topbar-right">
       <div class="user-chip">
         <div class="avatar" id="topAvatar">?</div>
         <span class="name" id="topName">...</span>
       </div>
+      <button class="btn-sm" onclick="toggleDark()"
+             style="background:rgba(255,255,255,.1);color:#CBD5E1" id="btnDark" title="Dark mode">🌙</button>
       <button class="btn-sm btn-logout" onclick="doLogout()">Đăng xuất</button>
     </div>
   </nav>
@@ -267,12 +281,41 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <!-- PROJECTS -->
     <div id="pageProjects" class="page">
       <div class="page-title">📁 Quản lý Dự án</div>
+
+      <!-- Add project form -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#1E3A8A;margin-bottom:12px">➕ Thêm Dự án mới</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tên dự án *</div>
+            <input id="newProjName" placeholder="VD: Cầu Kỳ Lam..." style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Nhóm trưởng</div>
+            <input id="newProjLeader" placeholder="Tên kỹ sư..." style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Deadline</div>
+            <input id="newProjDeadline" type="date" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+          </div>
+          <button onclick="addProject()" style="height:36px;padding:0 16px;background:#1E3A8A;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">
+            💾 Lưu
+          </button>
+        </div>
+      </div>
+
       <div id="projList" class="projects-grid"><div class="loading"><span class="spinner"></span>Đang tải...</div></div>
     </div>
 
     <!-- CHATBOT -->
     <div id="pageChat" class="page">
-      <div class="page-title">🤖 Chatbot AI S-RETC</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="page-title" style="margin-bottom:0">🤖 Chatbot AI S-RETC</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:#64748B;background:#F1F5F9;padding:4px 10px;border-radius:20px;font-weight:600">llama-3.3-70b</span>
+          <button onclick="clearChat()" style="height:32px;padding:0 12px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🗑 Xoá chat</button>
+        </div>
+      </div>
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
           <div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC. Bạn cần hỗ trợ gì về thiết kế cầu đường, TCVN, hay dự toán?</div>
@@ -287,7 +330,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <!-- LIBRARY -->
     <div id="pageLibrary" class="page">
-      <div class="page-title">📚 Thư viện S-RETC</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="page-title" style="margin-bottom:0">📚 Thư viện S-RETC</div>
+        <input id="libSearch" placeholder="🔍 Tìm tài liệu..." oninput="filterLib()"
+               style="height:34px;width:200px;border:1.5px solid #E2E8F0;border-radius:20px;
+                      padding:0 14px;font-size:13px"/>
+      </div>
       <div class="lib-tabs">
         <button class="lib-tab active" onclick="loadLib('TCVN',this)">📋 Tiêu chuẩn & Pháp luật</button>
         <button class="lib-tab" onclick="loadLib('Software',this)">💿 Phần mềm</button>
@@ -349,6 +397,76 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div id="estimateList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
         <div class="loading"><span class="spinner"></span>Đang tải...</div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="pageProfile" class="page">
+      <div class="page-title">👤 Hồ sơ tài khoản</div>
+      <div style="max-width:480px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:28px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <!-- Avatar initials -->
+          <div style="width:72px;height:72px;border-radius:50%;background:#DBEAFE;border:3px solid #93C5FD;
+                      display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;
+                      color:#1E3A8A;margin:0 auto 20px" id="profileAvatar">?</div>
+
+          <div style="display:grid;gap:14px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tài khoản</div>
+              <div style="font-size:15px;font-weight:700;color:#0F172A" id="profileUsername">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Họ và tên</div>
+              <input id="profileFullName" style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px"/>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Vai trò</div>
+              <div style="font-size:14px;color:#1E40AF;font-weight:600" id="profileRole">—</div>
+            </div>
+            <div style="border-top:1px solid #F1F5F9;padding-top:14px">
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:8px">Đổi mật khẩu</div>
+              <input id="profileNewPass" type="password" placeholder="Mật khẩu mới (bỏ trống nếu không đổi)"
+                     style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px;margin-bottom:8px"/>
+              <input id="profileConfPass" type="password" placeholder="Xác nhận mật khẩu mới"
+                     style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px"/>
+            </div>
+            <button onclick="saveProfile()"
+                    style="height:40px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">
+              💾 Lưu thay đổi
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div id="pageFeedback" class="page">
+      <div class="page-title">💬 Góp ý &amp; Báo lỗi</div>
+      <div style="max-width:560px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Phân loại</div>
+            <select id="fbType" style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px">
+              <option>⚠️ Báo lỗi phần mềm</option>
+              <option>💡 Góp ý tính năng mới</option>
+              <option>🌐 Góp ý Web Companion</option>
+              <option>💬 Khác...</option>
+            </select>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Nội dung chi tiết *</div>
+            <textarea id="fbContent" rows="5" placeholder="Mô tả chi tiết vấn đề hoặc góp ý..."
+                      style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;
+                             font-size:14px;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:16px">
+            ℹ️ Thông tin tài khoản và tên máy tính sẽ được gửi kèm để Admin hỗ trợ tốt hơn.
+          </div>
+          <button onclick="sendFeedback()"
+                  style="width:100%;height:42px;background:#D97706;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">
+            🚀 Gửi phản hồi
+          </button>
+        </div>
       </div>
     </div>
 
@@ -460,18 +578,26 @@ function showToast(msg, color) {
 }
 
 // ── Navigation ─────────────────────────────────────────────────────
-const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate'};
-const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate'};
+const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate', profile:'pageProfile', feedback:'pageFeedback'};
+const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate', profile:'navProfile', feedback:'navFeedback'};
 
 function showPage(name) {
   Object.entries(PAGES).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
   Object.entries(NAVS).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
   if (name==='projects') loadProjects();
   if (name==='estimate') loadEstimate();
+  if (name==='profile') loadProfile();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
 async function loadDashboard() {
+  // Dynamic greeting
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+  const name  = (currentUser.fullName || '').split(' ').pop();
+  const dashTitle = document.querySelector('#pageDash .page-title');
+  if (dashTitle) dashTitle.textContent = `🏠 ${greet}, ${name}!`;
+
   try {
     // Notice
     const notice = await fbGet('SystemData/AdminNotice').catch(()=>null);
@@ -512,10 +638,17 @@ function renderProjects(projects, containerId) {
     const statusText  = p.Status==='Completed'?'Hoàn thành': isLate(p.Deadline)?'Sắp hết hạn':'Đang TK';
     const color       = p2<40?'#EF4444': p2<80?'#F97316':'#10B981';
     return `<div class="proj-card">
-      <div class="proj-name">${p.Name||'Dự án'}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+        <div class="proj-name">${p.Name||'Dự án'}</div>
+        <span class="proj-status ${statusClass}">${statusText}</span>
+      </div>
       <div class="proj-meta">👤 ${p.Leader||'—'} &nbsp;|&nbsp; 📅 ${p.Deadline||'—'}</div>
-      <span class="proj-status ${statusClass}">${statusText}</span>
+      <div style="margin:8px 0 4px;display:flex;justify-content:space-between;font-size:11px;color:#6B7280">
+        <span>Tiến độ</span><strong style="color:${color}">${p2}%</strong>
+      </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${p2}%;background:${color}"></div></div>
+      ${p.WorkDone ? `<div style="font-size:11px;color:#059669;margin-top:6px;font-style:italic">📝 ${p.WorkDone.substring(0,80)}</div>` : ''}
+      ${p.Status!=='Completed' ? `<button onclick="markDone('${p.id}')" style="margin-top:8px;height:28px;padding:0 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✔ Hoàn thành</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -582,6 +715,13 @@ function updateMsg(id, text) {
   if (el) { el.textContent = text; el.classList.remove('msg-typing'); }
   document.getElementById('chatMessages').scrollTop = 999999;
 }
+function clearChat() {
+  chatHistory = [];
+  const el = document.getElementById('chatMessages');
+  el.innerHTML = '<div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC. Bạn cần hỗ trợ gì?</div>';
+  showToast('🗑 Đã xoá lịch sử chat', '#64748B');
+}
+
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
 // ── Library ────────────────────────────────────────────────────────
@@ -605,7 +745,15 @@ async function loadLib(cat, btn) {
         </div>
         <span class="arrow">→</span>
       </div>`).join('');
-  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải thư viện</div>'; }
+  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải thư viện — kiểm tra Firebase Rules</div>'; }
+}
+
+function filterLib() {
+  const q = document.getElementById('libSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('#libItems .lib-item').forEach(el => {
+    const name = el.querySelector('.name')?.textContent.toLowerCase() || '';
+    el.style.display = name.includes(q) ? '' : 'none';
+  });
 }
 
 function catIcon(cat) {
@@ -681,6 +829,46 @@ function toDMS(dd, ns) {
   return `${d}°${m2}'${s.toFixed(2)}"${dir}`;
 }
 
+
+// ── Project actions ────────────────────────────────────────────────
+
+async function addProject() {
+  const name     = document.getElementById('newProjName').value.trim();
+  const leader   = document.getElementById('newProjLeader').value.trim();
+  const deadline = document.getElementById('newProjDeadline').value;
+  if (!name) { showToast('❌ Nhập tên dự án!', '#EF4444'); return; }
+
+  const id = 'proj_' + Date.now();
+  const data = { Name: name, Leader: leader, Deadline: deadline,
+                 Status: 'InProgress', WorkDone: '', Description: '' };
+  try {
+    const url = `${FB_URL}/Projects/${currentUser.username}/${id}.json`;
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(r.status);
+    document.getElementById('newProjName').value = '';
+    document.getElementById('newProjLeader').value = '';
+    document.getElementById('newProjDeadline').value = '';
+    showToast('✅ Đã thêm dự án: ' + name, '#059669');
+    loadProjects();
+    loadDashboard();
+  } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
+}
+
+async function markDone(projId) {
+  if (!confirm('Đánh dấu dự án này là Hoàn thành?')) return;
+  try {
+    const url = `${FB_URL}/Projects/${currentUser.username}/${projId}/Status.json`;
+    await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:'"Completed"' });
+    showToast('✅ Đã đánh dấu hoàn thành!', '#059669');
+    loadProjects();
+    loadDashboard();
+  } catch(e){ showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
 // ── Estimate (view only) ─────────────────────────────────────────
 async function loadEstimate() {
   const el = document.getElementById('estimateList');
@@ -700,12 +888,104 @@ async function loadEstimate() {
   } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dự toán: '+e.message+'</div>'; }
 }
 
+
+// ── Profile ────────────────────────────────────────────────────────
+function loadProfile() {
+  const u = currentUser;
+  const el = document.getElementById('profileAvatar');
+  const parts = (u.fullName||'?').split(' ');
+  const initials = parts.length > 1 ? parts[0][0]+parts[parts.length-1][0] : parts[0][0];
+  if (el) el.textContent = initials.toUpperCase();
+  const uEl = document.getElementById('profileUsername');
+  if (uEl) uEl.textContent = u.username;
+  const fEl = document.getElementById('profileFullName');
+  if (fEl) fEl.value = u.fullName || '';
+  const rEl = document.getElementById('profileRole');
+  if (rEl) rEl.textContent = u.role || 'NguoiDung';
+}
+
+async function saveProfile() {
+  const fullName = document.getElementById('profileFullName')?.value.trim() || '';
+  const newPass  = document.getElementById('profileNewPass')?.value || '';
+  const confPass = document.getElementById('profileConfPass')?.value || '';
+
+  if (!fullName) { showToast('❌ Họ tên không được để trống!', '#EF4444'); return; }
+  if (newPass && newPass !== confPass) { showToast('❌ Mật khẩu xác nhận không khớp!', '#EF4444'); return; }
+  if (newPass && newPass.length < 4) { showToast('❌ Mật khẩu tối thiểu 4 ký tự!', '#EF4444'); return; }
+
+  try {
+    // Update FullName
+    await fetch(`${FB_URL}/Users/${currentUser.username}/FullName.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fullName)
+    });
+
+    // Update password if provided
+    if (newPass) {
+      const hash = await sha256(newPass);
+      await fetch(`${FB_URL}/Users/${currentUser.username}/PasswordWeb.json`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(hash)
+      });
+    }
+
+    // Update session
+    currentUser.fullName = fullName;
+    sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
+    document.getElementById('topName').textContent = fullName;
+    const av = fullName.split(' ');
+    const initials = av.length>1 ? av[0][0]+av[av.length-1][0] : av[0][0];
+    document.getElementById('topAvatar').textContent = initials.toUpperCase();
+
+    showToast('✅ Đã lưu hồ sơ thành công!', '#059669');
+    if (newPass) { document.getElementById('profileNewPass').value=''; document.getElementById('profileConfPass').value=''; }
+  } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
+}
+
+// ── Feedback ───────────────────────────────────────────────────────
+async function sendFeedback() {
+  const type    = document.getElementById('fbType')?.value || '';
+  const content = document.getElementById('fbContent')?.value.trim() || '';
+  if (!content) { showToast('❌ Nhập nội dung phản hồi!', '#EF4444'); return; }
+
+  const fbData = {
+    Type:      type,
+    Content:   content,
+    User:      currentUser.username,
+    FullName:  currentUser.fullName,
+    Machine:   'Web Browser',
+    Timestamp: new Date().toISOString().replace('T',' ').substring(0,19),
+    Status:    'Chua xu ly',
+    Source:    'Web Companion'
+  };
+
+  try {
+    const id = 'fb_web_' + Date.now();
+    const r = await fetch(`${FB_URL}/Feedbacks/${id}.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fbData)
+    });
+    if (!r.ok) throw new Error('Firebase write failed ' + r.status);
+    document.getElementById('fbContent').value = '';
+    showToast('✅ Cảm ơn! Phản hồi đã được gửi tới Admin.', '#059669');
+  } catch(e) { showToast('❌ Lỗi gửi: ' + e.message + ' — kiểm tra Firebase Rules', '#EF4444'); }
+}
+
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  const btn = document.getElementById('btnDark');
+  const isDark = document.body.classList.contains('dark');
+  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('sretc_dark', isDark);
+}
+
 function showRulesHelp() {
   document.getElementById('rulesModal').style.display='flex';
 }
 
 // ── Init ────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e=>{ if(e.key==='Enter'&&document.getElementById('authScreen').style.display!=='none') doLogin(); });
+if (localStorage.getItem('sretc_dark')==='true') {
+  document.body.classList.add('dark');
+  const btn=document.getElementById('btnDark'); if(btn) btn.textContent='☀️';
+}
 const saved = sessionStorage.getItem('sretc_user');
 if (saved) { currentUser=JSON.parse(saved); showApp(); document.getElementById('authScreen').style.display='none'; }
 </script>
