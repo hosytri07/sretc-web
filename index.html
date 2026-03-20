@@ -155,6 +155,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;
   margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -192,6 +193,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button onclick="showPage('chat')" id="navChat">🤖 Chatbot AI</button>
       <button onclick="showPage('library')" id="navLib">📚 Thư viện</button>
       <button onclick="showPage('coords')" id="navCoords">🗺️ Toạ độ</button>
+      <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
     </div>
     <div class="topbar-right">
       <div class="user-chip">
@@ -300,12 +302,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
 
+    <!-- ESTIMATE (View only) -->
+    <div id="pageEstimate" class="page">
+      <div class="page-title">💰 Xem Dự toán</div>
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:#1E40AF;">
+        ℹ️ Trang web chỉ xem dự toán đã lưu. Để tạo/sửa dự toán, dùng <strong>S-RETC Desktop</strong>.
+      </div>
+      <div id="estimateList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+        <div class="loading"><span class="spinner"></span>Đang tải...</div>
+      </div>
+    </div>
+
   </div><!-- /main-content -->
 </div><!-- /app -->
 
 <script>
 // ── Config (thay bằng giá trị thật) ───────────────────────────────
-const FB_URL   = 'https://roadauto-sretc-default-rtdb.asia-southeast1.firebasedatabase.app/';
+const FB_URL   = 'https://YOUR-PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app';
 const FB_SECRET= '';  // để trống nếu dùng rules .read=true cho public data
 
 // ── Firebase helper ────────────────────────────────────────────────
@@ -350,6 +363,7 @@ async function doLogin() {
     currentUser = { username: u, fullName: data.FullName || u, role: data.Role || 'User' };
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
     showApp();
+    setTimeout(()=>showToast('👋 Chào mừng, ' + (data.FullName||u) + '!', '#059669'), 500);
   } catch(e) {
     msg.textContent = '❌ Lỗi kết nối Firebase. Kiểm tra cấu hình FB_URL.';
     console.error(e);
@@ -379,14 +393,26 @@ function showApp() {
   loadLib('TCVN', null);
 }
 
+// Welcome toast
+function showToast(msg, color) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${color||'#1E3A8A'};color:#fff;
+    padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,.2);animation:slideIn .3s ease`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
 // ── Navigation ─────────────────────────────────────────────────────
-const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords'};
-const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords'};
+const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate'};
+const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate'};
 
 function showPage(name) {
   Object.entries(PAGES).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
   Object.entries(NAVS).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
   if (name==='projects') loadProjects();
+  if (name==='estimate') loadEstimate();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -598,6 +624,25 @@ function toDMS(dd, ns) {
   const s=((Math.abs(dd)-d)*60-m2)*60;
   const dir=dd>=0?ns.split('/')[0]:ns.split('/')[1];
   return `${d}°${m2}'${s.toFixed(2)}"${dir}`;
+}
+
+// ── Estimate (view only) ─────────────────────────────────────────
+async function loadEstimate() {
+  const el = document.getElementById('estimateList');
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('Estimates/' + currentUser.username).catch(()=>null);
+    if (!raw) { el.innerHTML='<div class="loading">Chưa có dự toán nào được lưu từ Desktop</div>'; return; }
+    const items = Object.entries(raw).map(([id,v])=>({id,...(v.meta||v)}));
+    el.innerHTML = items.map(p=>`
+      <div class="proj-card" style="border-left:4px solid #1E3A8A">
+        <div class="proj-name">💰 ${p.TenCongTrinh||p.TenDuAn||'Dự toán'}</div>
+        <div class="proj-meta">📍 ${p.Tinh||'—'} &nbsp;|&nbsp; 📅 ${p.NgayLuu||'—'} &nbsp;|&nbsp; ${p.SoCongTac||0} công tác</div>
+        <div class="proj-meta" style="margin-top:6px;color:#1E3A8A;font-weight:600">
+          ID: ${p.id}
+        </div>
+      </div>`).join('');
+  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dự toán: '+e.message+'</div>'; }
 }
 
 // ── Init ────────────────────────────────────────────────────────────
