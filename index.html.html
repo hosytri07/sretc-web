@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>S-RETC Toolkit — Web</title>
+<style>
+/* ── Reset & Variables ────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:   #0F172A;
+  --blue:   #1E3A8A;
+  --accent: #3B82F6;
+  --green:  #10B981;
+  --amber:  #F59E0B;
+  --red:    #EF4444;
+  --bg:     #F1F5F9;
+  --card:   #FFFFFF;
+  --border: #E2E8F0;
+  --text:   #1E293B;
+  --muted:  #64748B;
+  --font:   'Segoe UI','Roboto',sans-serif;
+  --radius: 10px;
+  --shadow: 0 1px 6px rgba(0,0,0,.08);
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Auth Screen ──────────────────────────────────────────────── */
+#authScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%)}
+.auth-card{background:#fff;border-radius:16px;padding:40px 36px;width:360px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo .brand{font-size:32px;font-weight:900;color:var(--blue)}
+.auth-logo .sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-top:2px}
+.auth-card h2{font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px;text-align:center}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;height:40px;border:1.5px solid var(--border);border-radius:8px;
+  padding:0 12px;font-size:14px;transition:.15s}
+.field input:focus{outline:none;border-color:var(--accent)}
+.btn-primary{width:100%;height:42px;background:var(--blue);color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;margin-top:6px}
+.btn-primary:hover{background:var(--accent)}
+#authMsg{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:18px}
+
+/* ── App Layout ───────────────────────────────────────────────── */
+#app{display:none;flex:1;flex-direction:column;height:100vh}
+
+/* Topbar */
+.topbar{background:var(--navy);color:#fff;height:52px;display:flex;align-items:center;
+  padding:0 20px;gap:16px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.topbar .brand{font-size:18px;font-weight:900;color:#60A5FA;letter-spacing:.5px}
+.topbar .version{font-size:10px;color:#94A3B8;font-weight:600}
+.topbar-nav{display:flex;gap:4px;margin-left:8px;flex:1}
+.topbar-nav button{background:transparent;border:none;color:#94A3B8;padding:6px 12px;
+  border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.topbar-nav button:hover,.topbar-nav button.active{background:rgba(255,255,255,.12);color:#fff}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.user-chip{background:rgba(255,255,255,.12);border-radius:20px;padding:4px 12px 4px 6px;
+  display:flex;align-items:center;gap:7px;cursor:pointer}
+.user-chip .avatar{width:26px;height:26px;background:var(--accent);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.user-chip .name{font-size:12px;font-weight:600;color:#fff}
+.btn-sm{height:30px;padding:0 12px;border:none;border-radius:6px;
+  font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-logout{background:rgba(239,68,68,.2);color:#FCA5A5}
+.btn-logout:hover{background:rgba(239,68,68,.4)}
+
+/* Main area */
+.main-content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Pages ────────────────────────────────────────────────────── */
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:20px;font-weight:800;color:var(--blue);margin-bottom:20px;
+  display:flex;align-items:center;gap:8px}
+
+/* Dashboard */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
+.stat-icon{font-size:28px;line-height:1}
+.stat-val{font-size:22px;font-weight:800;color:var(--text)}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.notice-bar{background:linear-gradient(90deg,#EFF6FF,#DBEAFE);border:1px solid #BFDBFE;
+  border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.notice-bar .icon{font-size:18px}
+.notice-bar .text{font-size:13px;font-weight:600;color:var(--blue)}
+
+/* Projects */
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.proj-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;box-shadow:var(--shadow)}
+.proj-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.proj-meta{font-size:11px;color:var(--muted);margin-bottom:10px}
+.proj-status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.status-active{background:#DBEAFE;color:#1E40AF}
+.status-done{background:#D1FAE5;color:#065F46}
+.status-late{background:#FEE2E2;color:#991B1B}
+.prog-bar{height:5px;background:#F1F5F9;border-radius:3px;margin-top:10px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:.3s}
+
+/* Chatbot */
+.chat-container{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  display:flex;flex-direction:column;height:calc(100vh - 160px);box-shadow:var(--shadow)}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:75%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5}
+.msg-user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg-bot{background:#F8FAFC;border:1px solid var(--border);color:var(--text);
+  align-self:flex-start;border-bottom-left-radius:4px}
+.msg-typing{color:var(--muted);font-style:italic}
+.chat-input-row{padding:16px;border-top:1px solid var(--border);display:flex;gap:10px}
+.chat-input-row input{flex:1;height:42px;border:1.5px solid var(--border);border-radius:8px;
+  padding:0 14px;font-size:14px}
+.chat-input-row input:focus{outline:none;border-color:var(--accent)}
+.chat-input-row button{height:42px;padding:0 18px;background:var(--blue);color:#fff;
+  border:none;border-radius:8px;font-weight:700;cursor:pointer}
+.chat-input-row button:hover{background:var(--accent)}
+#chatGroqKey{font-size:12px;color:var(--muted);padding:0 16px 10px;text-align:center}
+
+/* Library */
+.lib-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.lib-tab{padding:7px 16px;border:1.5px solid var(--border);border-radius:20px;
+  background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;color:var(--muted)}
+.lib-tab.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.lib-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;
+  transition:.15s;box-shadow:var(--shadow)}
+.lib-item:hover{border-color:var(--accent);transform:translateY(-1px)}
+.lib-item .icon{font-size:24px;flex-shrink:0}
+.lib-item .info .name{font-size:13px;font-weight:600;color:var(--text)}
+.lib-item .info .date{font-size:11px;color:var(--muted);margin-top:2px}
+.lib-item .arrow{margin-left:auto;color:var(--muted);font-size:16px}
+
+/* Map / Coordinates */
+.coord-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;max-width:640px;box-shadow:var(--shadow)}
+.coord-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.coord-field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.coord-field input{width:100%;height:38px;border:1.5px solid var(--border);border-radius:7px;
+  padding:0 10px;font-size:14px}
+.coord-field input:focus{outline:none;border-color:var(--accent)}
+.coord-btns{display:flex;gap:10px;margin-bottom:16px}
+.btn-convert{height:38px;padding:0 18px;background:var(--blue);color:#fff;border:none;
+  border-radius:7px;font-weight:600;font-size:13px;cursor:pointer}
+.btn-convert:hover{background:var(--accent)}
+.coord-result{background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:14px;
+  font-size:13px;font-family:monospace;color:var(--text);min-height:60px;white-space:pre-line}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;
+  margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ════════════════════════════════════════════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="brand">S-RETC</div>
+      <div class="sub">TOOLKIT WEB COMPANION</div>
+    </div>
+    <h2>Đăng nhập hệ thống</h2>
+    <div class="field">
+      <label>Tài khoản</label>
+      <input id="inpUser" type="text" placeholder="Nhập tên đăng nhập" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Mật khẩu</label>
+      <input id="inpPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">🔐 Đăng nhập</button>
+    <div id="authMsg"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ════════════════════════════════════════════════════ -->
+<div id="app" style="display:none;flex:1;flex-direction:column">
+
+  <nav class="topbar">
+    <span class="brand">S-RETC</span>
+    <span class="version">WEB v1.0</span>
+    <div class="topbar-nav">
+      <button onclick="showPage('dash')" id="navDash" class="active">🏠 Dashboard</button>
+      <button onclick="showPage('projects')" id="navProjects">📁 Dự án</button>
+      <button onclick="showPage('chat')" id="navChat">🤖 Chatbot AI</button>
+      <button onclick="showPage('library')" id="navLib">📚 Thư viện</button>
+      <button onclick="showPage('coords')" id="navCoords">🗺️ Toạ độ</button>
+    </div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="avatar" id="topAvatar">?</div>
+        <span class="name" id="topName">...</span>
+      </div>
+      <button class="btn-sm btn-logout" onclick="doLogout()">Đăng xuất</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="pageDash" class="page active">
+      <div class="page-title">🏠 Dashboard</div>
+      <div id="noticeBar" class="notice-bar" style="display:none">
+        <span class="icon">📢</span><span class="text" id="noticeText"></span>
+      </div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><span class="stat-icon">📁</span>
+          <div><div class="stat-val" id="statTotal">--</div><div class="stat-label">Tổng dự án</div></div></div>
+        <div class="stat-card"><span class="stat-icon">⏳</span>
+          <div><div class="stat-val" id="statActive">--</div><div class="stat-label">Đang triển khai</div></div></div>
+        <div class="stat-card"><span class="stat-icon">✅</span>
+          <div><div class="stat-val" id="statDone">--</div><div class="stat-label">Hoàn thành</div></div></div>
+        <div class="stat-card"><span class="stat-icon">⚠️</span>
+          <div><div class="stat-val" id="statLate">--</div><div class="stat-label">Sắp hết hạn</div></div></div>
+      </div>
+      <div id="dashProjects" class="projects-grid"></div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div id="pageProjects" class="page">
+      <div class="page-title">📁 Quản lý Dự án</div>
+      <div id="projList" class="projects-grid"><div class="loading"><span class="spinner"></span>Đang tải...</div></div>
+    </div>
+
+    <!-- CHATBOT -->
+    <div id="pageChat" class="page">
+      <div class="page-title">🤖 Chatbot AI S-RETC</div>
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC. Bạn cần hỗ trợ gì về thiết kế cầu đường, TCVN, hay dự toán?</div>
+        </div>
+        <div id="chatGroqKey" style="display:none">⚠️ Chưa có Groq API Key — Admin cần cấu hình</div>
+        <div class="chat-input-row">
+          <input id="chatInput" placeholder="Nhập câu hỏi về thiết kế cầu đường, TCVN..." onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button onclick="sendChat()">Gửi ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div id="pageLibrary" class="page">
+      <div class="page-title">📚 Thư viện S-RETC</div>
+      <div class="lib-tabs">
+        <button class="lib-tab active" onclick="loadLib('TCVN',this)">📋 Tiêu chuẩn & Pháp luật</button>
+        <button class="lib-tab" onclick="loadLib('Software',this)">💿 Phần mềm</button>
+        <button class="lib-tab" onclick="loadLib('Video',this)">🎬 Video & IT Tricks</button>
+        <button class="lib-tab" onclick="loadLib('LISP',this)">📜 LISP Scripts</button>
+      </div>
+      <div id="libItems" class="lib-grid"><div class="loading"><span class="spinner"></span>Đang tải...</div></div>
+    </div>
+
+    <!-- COORDINATES -->
+    <div id="pageCoords" class="page">
+      <div class="page-title">🗺️ Chuyển đổi Toạ độ</div>
+      <div class="coord-panel">
+        <h3 style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:16px">VN2000 → WGS84</h3>
+        <div class="coord-row">
+          <div class="coord-field"><label>X (m) — Bắc</label><input id="inpX" placeholder="594000" type="number"/></div>
+          <div class="coord-field"><label>Y (m) — Đông</label><input id="inpY" placeholder="1700000" type="number"/></div>
+        </div>
+        <div class="coord-row">
+          <div class="coord-field">
+            <label>Múi chiếu</label>
+            <select id="selMui" style="width:100%;height:38px;border:1.5px solid var(--border);border-radius:7px;padding:0 10px;font-size:14px">
+              <option value="105">Múi 3° — KTT 105° (Miền Trung/Nam)</option>
+              <option value="108">Múi 3° — KTT 108° (Đà Nẵng, Tây Nguyên)</option>
+              <option value="107.75">Múi 3° — KTT 107°45' (Hà Nội)</option>
+            </select>
+          </div>
+          <div class="coord-field">
+            <label>Tỉnh/Khu vực</label>
+            <select id="selTinh" style="width:100%;height:38px;border:1.5px solid var(--border);border-radius:7px;padding:0 10px;font-size:14px">
+              <option value="-191">Đà Nẵng / Miền Trung</option>
+              <option value="-191">Quảng Nam / Quảng Ngãi</option>
+              <option value="-191">TP.HCM / Miền Nam</option>
+              <option value="-191">Hà Nội / Miền Bắc</option>
+            </select>
+          </div>
+        </div>
+        <div class="coord-btns">
+          <button class="btn-convert" onclick="convertCoords()">▶ Chuyển VN2000 → WGS84</button>
+          <button class="btn-convert" style="background:#7C3AED" onclick="convertCoordsRev()">◀ WGS84 → VN2000</button>
+        </div>
+        <div class="coord-result" id="coordResult">Nhập toạ độ và bấm Chuyển để xem kết quả...</div>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)"/>
+        <h3 style="font-size:14px;font-weight:700;color:#7C3AED;margin-bottom:16px">WGS84 (Lat/Lng)</h3>
+        <div class="coord-row">
+          <div class="coord-field"><label>Latitude (Vĩ độ)</label><input id="inpLat" placeholder="15.97..." type="number" step="0.000001"/></div>
+          <div class="coord-field"><label>Longitude (Kinh độ)</label><input id="inpLng" placeholder="108.2..." type="number" step="0.000001"/></div>
+        </div>
+        <div id="coordResult2" class="coord-result" style="margin-top:8px">Điền Lat/Lng để xem chuyển ngược sang VN2000...</div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<script>
+// ── Config (thay bằng giá trị thật) ───────────────────────────────
+const FB_URL   = 'https://roadauto-sretc-default-rtdb.asia-southeast1.firebasedatabase.app/';
+const FB_SECRET= '';  // để trống nếu dùng rules .read=true cho public data
+
+// ── Firebase helper ────────────────────────────────────────────────
+async function fbGet(path) {
+  const url = `${FB_URL}/${path}.json${FB_SECRET ? '?auth='+FB_SECRET : ''}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Firebase error ' + r.status);
+  return r.json();
+}
+
+// ── Auth (BCrypt check via Firebase) ──────────────────────────────
+let currentUser = null;
+
+async function doLogin() {
+  const u = document.getElementById('inpUser').value.trim();
+  const p = document.getElementById('inpPass').value;
+  const msg = document.getElementById('authMsg');
+  if (!u || !p) { msg.textContent = 'Vui lòng nhập đầy đủ!'; return; }
+  msg.textContent = '⏳ Đang xác thực...';
+  try {
+    const data = await fbGet('Users/' + u);
+    if (!data) { msg.textContent = '❌ Tài khoản không tồn tại!'; return; }
+
+    // Check approval
+    if (data.IsApproved === false) {
+      msg.textContent = '❌ Tài khoản chưa được Admin phê duyệt!'; return;
+    }
+
+    // PasswordWeb = SHA256 (lưu bởi desktop app khi tạo/đổi mật khẩu)
+    const storedWeb = data.PasswordWeb || '';
+    const hash256   = await sha256(p);
+    const ok = storedWeb && storedWeb === hash256;
+    if (!ok) {
+      // Fallback: nếu chưa có PasswordWeb, hướng dẫn user
+      if (!storedWeb) {
+        msg.textContent = '⚠️ Tài khoản này chưa hỗ trợ đăng nhập Web. Admin cần đổi mật khẩu một lần từ desktop để kích hoạt.';
+      } else {
+        msg.textContent = '❌ Sai mật khẩu!';
+      }
+      return;
+    }
+    currentUser = { username: u, fullName: data.FullName || u, role: data.Role || 'User' };
+    sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
+    showApp();
+  } catch(e) {
+    msg.textContent = '❌ Lỗi kết nối Firebase. Kiểm tra cấu hình FB_URL.';
+    console.error(e);
+  }
+}
+
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function doLogout() {
+  sessionStorage.removeItem('sretc_user');
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  const av = (currentUser.fullName||'?').split(' ');
+  const initials = av.length > 1 ? av[0][0]+av[av.length-1][0] : av[0][0];
+  document.getElementById('topAvatar').textContent = initials.toUpperCase();
+  document.getElementById('topName').textContent = currentUser.fullName;
+  loadDashboard();
+  loadLib('TCVN', null);
+}
+
+// ── Navigation ─────────────────────────────────────────────────────
+const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords'};
+const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords'};
+
+function showPage(name) {
+  Object.entries(PAGES).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
+  Object.entries(NAVS).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
+  if (name==='projects') loadProjects();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    // Notice
+    const notice = await fbGet('SystemData/AdminNotice').catch(()=>null);
+    if (notice) { document.getElementById('noticeBar').style.display='flex'; document.getElementById('noticeText').textContent=notice; }
+    // Projects
+    const raw = await fbGet('Projects/' + currentUser.username).catch(()=>null);
+    const projects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
+    const total  = projects.length;
+    const active = projects.filter(p=>p.Status==='InProgress').length;
+    const done   = projects.filter(p=>p.Status==='Completed').length;
+    const late   = projects.filter(p=>isLate(p.Deadline)).length;
+    document.getElementById('statTotal').textContent  = total;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statDone').textContent   = done;
+    document.getElementById('statLate').textContent   = late;
+    renderProjects(projects.slice(0,6), 'dashProjects');
+  } catch(e){ console.error(e); }
+}
+
+function isLate(deadline) {
+  if (!deadline) return false;
+  const d = new Date(deadline);
+  const diff = (d - new Date()) / 86400000;
+  return diff > 0 && diff < 14;
+}
+
+function pct(workDone) {
+  const m = (workDone||'').match(/(\d+)/);
+  return m ? Math.min(100, parseInt(m[1])) : 0;
+}
+
+function renderProjects(projects, containerId) {
+  const el = document.getElementById(containerId);
+  if (!projects.length) { el.innerHTML='<div class="loading">Chưa có dự án nào</div>'; return; }
+  el.innerHTML = projects.map(p=>{
+    const p2 = pct(p.WorkDone);
+    const statusClass = p.Status==='Completed'?'status-done': isLate(p.Deadline)?'status-late':'status-active';
+    const statusText  = p.Status==='Completed'?'Hoàn thành': isLate(p.Deadline)?'Sắp hết hạn':'Đang TK';
+    const color       = p2<40?'#EF4444': p2<80?'#F97316':'#10B981';
+    return `<div class="proj-card">
+      <div class="proj-name">${p.Name||'Dự án'}</div>
+      <div class="proj-meta">👤 ${p.Leader||'—'} &nbsp;|&nbsp; 📅 ${p.Deadline||'—'}</div>
+      <span class="proj-status ${statusClass}">${statusText}</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:${p2}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadProjects() {
+  const el = document.getElementById('projList');
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('Projects/' + currentUser.username);
+    const projects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
+    renderProjects(projects, 'projList');
+  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dữ liệu</div>'; }
+}
+
+// ── Chatbot ────────────────────────────────────────────────────────
+let chatHistory = [];
+
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  addMsg(msg, 'user');
+  const typingId = addMsg('Đang suy nghĩ...', 'bot', true);
+
+  try {
+    const apiKey = await fbGet('SystemData/GroqApiKey').catch(()=>null);
+    if (!apiKey) {
+      updateMsg(typingId, '❌ Chưa có Groq API Key. Admin cần cấu hình trong SystemData/GroqApiKey trên Firebase.');
+      return;
+    }
+    chatHistory.push({role:'user', content: msg});
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {role:'system', content:'Ban la tro ly AI chuyen nganh cau duong Viet Nam (S-RETC). Tra loi ngan gon, chinh xac, bang tieng Viet. Su dung kien thuc TCVN, tieu chuan thiet ke cau duong.'},
+          ...chatHistory.slice(-10)
+        ],
+        max_tokens: 800, temperature: 0.5
+      })
+    });
+    const data = await resp.json();
+    const reply = data.choices?.[0]?.message?.content || 'Xin loi, co loi xay ra.';
+    chatHistory.push({role:'assistant', content: reply});
+    updateMsg(typingId, reply);
+  } catch(e) {
+    updateMsg(typingId, '❌ Lỗi kết nối: ' + e.message);
+  }
+}
+
+function addMsg(text, who, isTyping=false) {
+  const div = document.getElementById('chatMessages');
+  const id = 'msg_' + Date.now();
+  div.insertAdjacentHTML('beforeend',
+    `<div id="${id}" class="msg msg-${who}${isTyping?' msg-typing':''}">${escHtml(text)}</div>`);
+  div.scrollTop = div.scrollHeight;
+  return id;
+}
+function updateMsg(id, text) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = text; el.classList.remove('msg-typing'); }
+  document.getElementById('chatMessages').scrollTop = 999999;
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+// ── Library ────────────────────────────────────────────────────────
+async function loadLib(cat, btn) {
+  if (btn) {
+    document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const el = document.getElementById('libItems');
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const data = await fbGet('Library/' + cat);
+    if (!data) { el.innerHTML='<div class="loading">Chưa có tài liệu</div>'; return; }
+    const items = Object.values(data);
+    el.innerHTML = items.map(item=>`
+      <div class="lib-item" onclick="openLink('${item.DriveLink||'#'}')">
+        <span class="icon">${catIcon(cat)}</span>
+        <div class="info">
+          <div class="name">${item.Name||'—'}</div>
+          <div class="date">📅 ${item.UpdateDate||''}</div>
+        </div>
+        <span class="arrow">→</span>
+      </div>`).join('');
+  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải thư viện</div>'; }
+}
+
+function catIcon(cat) {
+  return {TCVN:'📋',Software:'💿',Video:'🎬',LISP:'📜'}[cat]||'📄';
+}
+function openLink(url) { if(url&&url!=='#') window.open(url,'_blank'); }
+
+// ── Coordinates (Transverse Mercator + Helmert) ────────────────────
+function convertCoords() {
+  const X  = parseFloat(document.getElementById('inpX').value);
+  const Y  = parseFloat(document.getElementById('inpY').value);
+  const L0 = parseFloat(document.getElementById('selMui').value) * Math.PI/180;
+  if (isNaN(X)||isNaN(Y)) { document.getElementById('coordResult').textContent='Nhập X và Y!'; return; }
+
+  const result = vn2000_to_wgs84(X, Y, L0);
+  document.getElementById('coordResult').textContent =
+    `Latitude (Vĩ độ):  ${result.lat.toFixed(8)}°\nLongitude (Kinh độ): ${result.lng.toFixed(8)}°\n\nDecimal:  ${result.lat.toFixed(6)}, ${result.lng.toFixed(6)}\nDMS:      ${toDMS(result.lat,'N/S')}  ${toDMS(result.lng,'E/W')}`;
+}
+
+function convertCoordsRev() {
+  const lat = parseFloat(document.getElementById('inpLat').value);
+  const lng = parseFloat(document.getElementById('inpLng').value);
+  const L0  = parseFloat(document.getElementById('selMui').value) * Math.PI/180;
+  if (isNaN(lat)||isNaN(lng)) { document.getElementById('coordResult2').textContent='Nhập Lat/Lng!'; return; }
+  const result = wgs84_to_vn2000(lat, lng, L0);
+  document.getElementById('coordResult2').textContent =
+    `X (Bắc):  ${result.X.toFixed(3)} m\nY (Đông): ${result.Y.toFixed(3)} m`;
+}
+
+// Gauss-Kruger (simplified TM) for VN2000/WGS84
+function vn2000_to_wgs84(x, y, L0) {
+  const a=6378137, f=1/298.257223563, b=a*(1-f);
+  const e2=1-b*b/(a*a), ep2=e2/(1-e2);
+  const x0=0, y0=500000, k0=1, dN=0, dE=191000;
+  const N0= x-x0+dN, E0=y-y0+dE;
+  const e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  const M0=0;
+  const M=M0+N0/k0;
+  const mu=M/(a*(1-e2/4-3*e2*e2/64-5*e2*e2*e2/256));
+  const phi1=mu+(3*e1/2-27*e1*e1*e1/32)*Math.sin(2*mu)
+    +(21*e1*e1/16-55*e1*e1*e1*e1/32)*Math.sin(4*mu)
+    +(151*e1*e1*e1/96)*Math.sin(6*mu);
+  const N1=a/Math.sqrt(1-e2*Math.sin(phi1)**2);
+  const T1=Math.tan(phi1)**2, C1=ep2*Math.cos(phi1)**2;
+  const R1=a*(1-e2)/Math.pow(1-e2*Math.sin(phi1)**2,1.5);
+  const D=E0/(N1*k0);
+  const lat=phi1-(N1*Math.tan(phi1)/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*ep2)*D*D*D*D/24
+    +(61+90*T1+298*C1+45*T1*T1-252*ep2-3*C1*C1)*D*D*D*D*D*D/720);
+  const lng=L0+(D-(1+2*T1+C1)*D*D*D/6+(5-2*C1+28*T1-3*C1*C1+8*ep2+24*T1*T1)*D*D*D*D*D/120)/Math.cos(phi1);
+  return {lat:lat*180/Math.PI, lng:lng*180/Math.PI};
+}
+
+function wgs84_to_vn2000(latDeg, lngDeg, L0) {
+  const lat=latDeg*Math.PI/180, lng=lngDeg*Math.PI/180;
+  const a=6378137, f=1/298.257223563, b=a*(1-f);
+  const e2=1-b*b/(a*a), ep2=e2/(1-e2);
+  const dN=0, dE=191000, k0=1;
+  const N=a/Math.sqrt(1-e2*Math.sin(lat)**2);
+  const T=Math.tan(lat)**2, C=ep2*Math.cos(lat)**2, A2=Math.cos(lat)*(lng-L0);
+  const M=a*((1-e2/4-3*e2**2/64-5*e2**3/256)*lat
+    -(3*e2/8+3*e2**2/32+45*e2**3/1024)*Math.sin(2*lat)
+    +(15*e2**2/256+45*e2**3/1024)*Math.sin(4*lat)
+    -(35*e2**3/3072)*Math.sin(6*lat));
+  const X=k0*(M+N*Math.tan(lat)*(A2**2/2+(5-T+9*C+4*C**2)*A2**4/24+(61-58*T+T**2+600*C-330*ep2)*A2**6/720))-dN;
+  const Y=k0*N*(A2+(1-T+C)*A2**3/6+(5-18*T+T**2+72*C-58*ep2)*A2**5/120)+500000-dE;
+  return {X,Y};
+}
+
+function toDMS(dd, ns) {
+  const d=Math.floor(Math.abs(dd)), m2=Math.floor((Math.abs(dd)-d)*60);
+  const s=((Math.abs(dd)-d)*60-m2)*60;
+  const dir=dd>=0?ns.split('/')[0]:ns.split('/')[1];
+  return `${d}°${m2}'${s.toFixed(2)}"${dir}`;
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{ if(e.key==='Enter'&&document.getElementById('authScreen').style.display!=='none') doLogin(); });
+const saved = sessionStorage.getItem('sretc_user');
+if (saved) { currentUser=JSON.parse(saved); showApp(); document.getElementById('authScreen').style.display='none'; }
+</script>
+</body>
+</html>
