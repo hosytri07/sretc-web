@@ -187,6 +187,12 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <input id="inpPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"/>
     </div>
     <button class="btn-primary" onclick="doLogin()">🔐 Đăng nhập</button>
+    <div style="text-align:center;margin-top:12px">
+      <a href="#" onclick="showForgotPassword()" 
+         style="font-size:12px;color:#3B82F6;text-decoration:none;font-weight:600">
+        Quên mật khẩu?
+      </a>
+    </div>
     <div id="authMsg"></div>
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;text-align:center;line-height:1.6">
       Lần đầu đăng nhập cần Firebase Rules cho phép write.<br>
@@ -430,6 +436,14 @@ body.dark .lib-item:hover{border-color:#60A5FA}
               <input id="profileConfPass" type="password" placeholder="Xác nhận mật khẩu mới"
                      style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px"/>
             </div>
+            <div style="border-top:1px solid #F1F5F9;padding-top:14px;margin-bottom:14px">
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Telegram Chat ID (để nhận OTP reset mật khẩu)</div>
+              <input id="profileTgId" placeholder="VD: 123456789 — Gửi /start cho bot để lấy ID"
+                     style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:13px;margin-bottom:4px"/>
+              <div style="font-size:11px;color:#3B82F6">
+                💡 Chat với <strong>@sretc_bot</strong> và gửi <code>/start</code> → bot sẽ báo Chat ID của bạn
+              </div>
+            </div>
             <button onclick="saveProfile()"
                     style="height:40px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">
               💾 Lưu thay đổi
@@ -475,7 +489,9 @@ body.dark .lib-item:hover{border-color:#60A5FA}
 
 <script>
 // ── Config (thay bằng giá trị thật) ───────────────────────────────
-const FB_URL   = 'https://roadauto-sretc-default-rtdb.asia-southeast1.firebasedatabase.app';
+const FB_URL       = 'https://roadauto-sretc-default-rtdb.asia-southeast1.firebasedatabase.app';
+const TG_TOKEN     = '8633197721:AAEKIwnnlUT28jGDOOVsgiko3y8WWhRwHeM';
+const TG_ADMIN_ID  = ''; // Điền Chat ID của Admin Telegram vào đây
 const FB_SECRET= '';  // để trống nếu dùng rules .read=true cho public data
 
 // ── Firebase helper ────────────────────────────────────────────────
@@ -974,6 +990,77 @@ function toggleDark() {
   const isDark = document.body.classList.contains('dark');
   if(btn) btn.textContent = isDark ? '☀️' : '🌙';
   localStorage.setItem('sretc_dark', isDark);
+}
+
+
+// ── Forgot Password via Telegram OTP ──────────────────────────────
+async function showForgotPassword() {
+  const username = prompt('Nhập tên đăng nhập của bạn:');
+  if (!username) return;
+
+  const newPass = prompt('Nhập mật khẩu mới (ít nhất 4 ký tự):');
+  if (!newPass || newPass.length < 4) { alert('Mật khẩu quá ngắn!'); return; }
+
+  const confirmPass = prompt('Xác nhận mật khẩu mới:');
+  if (newPass !== confirmPass) { alert('Mật khẩu xác nhận không khớp!'); return; }
+
+  // Check user exists
+  const msg = document.getElementById('authMsg');
+  msg.textContent = '⏳ Đang kiểm tra tài khoản...';
+  try {
+    const data = await fbGet('Users/' + username);
+    if (!data) { msg.textContent = '❌ Tài khoản không tồn tại!'; return; }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Get admin chat ID from Firebase (SystemData/TelegramAdminChatId)
+    const adminChatId = await fbGet('SystemData/TelegramAdminChatId').catch(()=>null)
+                        || TG_ADMIN_ID || data.TelegramChatId || '';
+
+    if (TG_TOKEN && adminChatId) {
+      // Send OTP via Telegram
+      const text = encodeURIComponent(
+        `🔑 S-RETC Web - Yêu cầu đặt lại mật khẩu
+` +
+        `Tài khoản: ${username}
+` +
+        `Mã OTP: ${otp}
+` +
+        `Hiệu lực: 5 phút`
+      );
+      await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${adminChatId}&text=${text}`);
+      msg.textContent = '';
+      alert(`✅ Mã OTP đã gửi qua Telegram!
+Kiểm tra Telegram và nhập mã OTP.`);
+    } else {
+      // Demo mode: show OTP directly
+      msg.textContent = '';
+      alert(`[DEMO] Mã OTP của bạn: ${otp}
+
+Admin cần điền TelegramAdminChatId vào Firebase SystemData để gửi tự động.`);
+    }
+
+    // Confirm OTP
+    const inputOtp = prompt('Nhập mã OTP 6 số:');
+    if (inputOtp?.trim() !== otp) {
+      msg.textContent = '❌ Mã OTP sai! Thử lại.';
+      return;
+    }
+
+    // Update PasswordWeb = SHA256(newPass)
+    const newHash = await sha256(newPass);
+    await fetch(`${FB_URL}/Users/${username}/PasswordWeb.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newHash)
+    });
+
+    msg.textContent = '';
+    alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+  } catch(e) {
+    msg.textContent = '❌ Lỗi: ' + e.message;
+  }
 }
 
 function showRulesHelp() {
