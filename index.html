@@ -251,6 +251,7 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
       <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
       <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
+      <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin</button>
     </div>
     <div class="topbar-right">
       <div class="user-chip">
@@ -484,6 +485,45 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       </div>
     </div>
 
+    <!-- ADMIN -->
+    <div id="pageAdmin" class="page">
+      <div class="page-title">🛡️ Quản trị hệ thống</div>
+
+      <!-- Tabs -->
+      <div class="lib-tabs" style="margin-bottom:20px">
+        <button class="lib-tab active" onclick="adminTab('feedbacks',this)">💬 Phản hồi</button>
+        <button class="lib-tab" onclick="adminTab('users',this)">👥 Users</button>
+        <button class="lib-tab" onclick="adminTab('notice',this)">📢 Thông báo</button>
+      </div>
+
+      <!-- Feedbacks -->
+      <div id="adminFeedbacks">
+        <div id="fbList" style="display:flex;flex-direction:column;gap:10px">
+          <div class="loading"><span class="spinner"></span>Đang tải...</div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div id="adminUsers" style="display:none">
+        <div id="userList" style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden">
+          <div class="loading"><span class="spinner"></span>Đang tải...</div>
+        </div>
+      </div>
+
+      <!-- Notice -->
+      <div id="adminNotice" style="display:none;max-width:560px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:20px">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">Nội dung thông báo Dashboard:</div>
+          <textarea id="noticeInput" rows="4"
+                    style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:12px"></textarea>
+          <div style="display:flex;gap:10px">
+            <button onclick="saveNotice()" style="height:38px;padding:0 20px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 Lưu thông báo</button>
+            <button onclick="clearNotice()" style="height:38px;padding:0 16px;background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;font-weight:600;cursor:pointer">🗑 Xóa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main-content -->
 </div><!-- /app -->
 
@@ -552,6 +592,7 @@ async function doLogin() {
     currentUser = { username: u, fullName: data.FullName || u, role: data.Role || 'User' };
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
     showApp();
+    updateAdminNav();
     setTimeout(()=>showToast('👋 Chào mừng, ' + (data.FullName||u) + '!', '#059669'), 500);
   } catch(e) {
     msg.textContent = '❌ Lỗi kết nối Firebase. Kiểm tra cấu hình FB_URL.';
@@ -594,8 +635,8 @@ function showToast(msg, color) {
 }
 
 // ── Navigation ─────────────────────────────────────────────────────
-const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate', profile:'pageProfile', feedback:'pageFeedback'};
-const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate', profile:'navProfile', feedback:'navFeedback'};
+const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate', profile:'pageProfile', feedback:'pageFeedback', admin:'pageAdmin'};
+const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate', profile:'navProfile', feedback:'navFeedback', admin:'navAdmin'};
 
 function showPage(name) {
   Object.entries(PAGES).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
@@ -603,6 +644,7 @@ function showPage(name) {
   if (name==='projects') loadProjects();
   if (name==='estimate') loadEstimate();
   if (name==='profile') loadProfile();
+  if (name==='admin') { loadAdminFeedbacks(); }
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -1067,6 +1109,147 @@ function showRulesHelp() {
   document.getElementById('rulesModal').style.display='flex';
 }
 
+
+// ── Admin Panel ────────────────────────────────────────────────────
+function adminTab(tab, btn) {
+  ['feedbacks','users','notice'].forEach(t => {
+    document.getElementById('admin'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'':'none';
+  });
+  document.querySelectorAll('#pageAdmin .lib-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(tab==='feedbacks') loadAdminFeedbacks();
+  if(tab==='users') loadAdminUsers();
+  if(tab==='notice') loadAdminNotice();
+}
+
+async function loadAdminFeedbacks() {
+  const el = document.getElementById('fbList');
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('Feedbacks');
+    if (!raw) { el.innerHTML='<div class="loading">Chưa có phản hồi nào</div>'; return; }
+    const items = Object.entries(raw).map(([id,v])=>({id,...v}))
+      .sort((a,b)=>(b.Timestamp||'').localeCompare(a.Timestamp||''));
+    el.innerHTML = items.map(fb=>`
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:700;color:#1E3A8A">${fb.Type||'Góp ý'}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:#64748B">${fb.Timestamp||''}</span>
+            <span style="background:${fb.Status==='Da xu ly'?'#D1FAE5':'#FEF3C7'};
+                         color:${fb.Status==='Da xu ly'?'#065F46':'#92400E'};
+                         padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">
+              ${fb.Status||'Chua xu ly'}
+            </span>
+            <button onclick="markFbDone('${fb.id}')"
+                    style="height:26px;padding:0 10px;background:#10B981;color:#fff;border:none;
+                           border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">
+              ✔ Xong
+            </button>
+          </div>
+        </div>
+        <div style="font-size:13px;color:#374151;margin-bottom:6px">${escHtml(fb.Content||'')}</div>
+        <div style="font-size:11px;color:#64748B">👤 ${fb.FullName||fb.User||'?'} · 💻 ${fb.Machine||''} · ${fb.Source||'Desktop'}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML='<div class="loading">Lỗi tải phản hồi — kiểm tra Firebase Rules</div>'; }
+}
+
+async function markFbDone(id) {
+  try {
+    await fetch(`${FB_URL}/Feedbacks/${id}/Status.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:'"Da xu ly"'
+    });
+    showToast('✅ Đã đánh dấu xử lý xong', '#059669');
+    loadAdminFeedbacks();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+async function loadAdminUsers() {
+  const el = document.getElementById('userList');
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('Users');
+    if (!raw) { el.innerHTML='<div class="loading">Không tải được</div>'; return; }
+    const users = Object.entries(raw).map(([u,v])=>({username:u,...v}));
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#F8FAFC">
+            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Tài khoản</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Họ tên</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Vai trò</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Trạng thái</th>
+            <th style="padding:10px 14px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u=>`
+            <tr style="border-bottom:1px solid #F1F5F9">
+              <td style="padding:10px 14px;font-weight:600;color:#0F172A">${u.username}</td>
+              <td style="padding:10px 14px;color:#374151">${u.FullName||'—'}</td>
+              <td style="padding:10px 14px">
+                <span style="background:${u.Role==='Admin'?'#FEF3C7':'#EFF6FF'};
+                             color:${u.Role==='Admin'?'#92400E':'#1E40AF'};
+                             padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">
+                  ${u.Role||'NguoiDung'}
+                </span>
+              </td>
+              <td style="padding:10px 14px">
+                <span style="color:${u.IsApproved===false?'#DC2626':'#059669'};font-size:12px;font-weight:600">
+                  ${u.IsApproved===false?'⏳ Chờ duyệt':'✅ Đã duyệt'}
+                </span>
+              </td>
+              <td style="padding:10px 14px;text-align:center">
+                ${u.IsApproved===false
+                  ? `<button onclick="approveUser('${u.username}')" style="height:28px;padding:0 10px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✓ Duyệt</button>`
+                  : ''}
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { el.innerHTML='<div class="loading">Lỗi tải users</div>'; }
+}
+
+async function approveUser(username) {
+  try {
+    await fetch(`${FB_URL}/Users/${username}/IsApproved.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:'true'
+    });
+    showToast(`✅ Đã duyệt tài khoản: ${username}`, '#059669');
+    loadAdminUsers();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+async function loadAdminNotice() {
+  try {
+    const notice = await fbGet('SystemData/AdminNotice').catch(()=>null);
+    const el = document.getElementById('noticeInput');
+    if (el) el.value = notice || '';
+  } catch(e) {}
+}
+
+async function saveNotice() {
+  const text = document.getElementById('noticeInput')?.value.trim() || '';
+  try {
+    await fetch(`${FB_URL}/SystemData/AdminNotice.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(text)
+    });
+    showToast('✅ Đã lưu thông báo!', '#059669');
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+async function clearNotice() {
+  if (!confirm('Xóa thông báo Dashboard?')) return;
+  try {
+    await fetch(`${FB_URL}/SystemData/AdminNotice.json`,
+      { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify('') });
+    document.getElementById('noticeInput').value = '';
+    showToast('🗑 Đã xóa thông báo', '#64748B');
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+// Load admin data when page shown
+const _origShowPage = showPage;
 // ── Init ────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e=>{ if(e.key==='Enter'&&document.getElementById('authScreen').style.display!=='none') doLogin(); });
 if (localStorage.getItem('sretc_dark')==='true') {
@@ -1074,6 +1257,11 @@ if (localStorage.getItem('sretc_dark')==='true') {
   const btn=document.getElementById('btnDark'); if(btn) btn.textContent='☀️';
 }
 const saved = sessionStorage.getItem('sretc_user');
+// Show admin nav if admin
+function updateAdminNav() {
+  const adminBtn = document.getElementById('navAdmin');
+  if (adminBtn && currentUser?.role === 'Admin') adminBtn.style.display = '';
+}
 if (saved) { currentUser=JSON.parse(saved); showApp(); document.getElementById('authScreen').style.display='none'; }
 </script>
 </body>
