@@ -158,6 +158,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;
   margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Mobile Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .topbar-nav { display:none }
+  .topbar { padding:0 12px }
+  .main-content { padding:12px }
+  .stats-grid { grid-template-columns:1fr 1fr }
+  .projects-grid,.lib-grid { grid-template-columns:1fr }
+  .coord-row { grid-template-columns:1fr }
+  .chat-container { height:calc(100vh - 130px) }
+  #pageProjects > div:first-child > div { grid-template-columns:1fr !important }
+  /* Hamburger menu for mobile */
+  .mobile-menu-btn { display:flex !important }
+  #mobileNav { display:flex }
+}
+@media (min-width: 769px) {
+  .mobile-menu-btn { display:none !important }
+  #mobileNav { display:none !important }
+}
+
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 body.dark{--bg:#0F172A;--card:#1E293B;--border:#334155;--text:#E2E8F0;--muted:#94A3B8}
 body.dark .topbar{background:#020617}
@@ -240,6 +260,8 @@ body.dark .lib-item:hover{border-color:#60A5FA}
 <div id="app" style="display:none;flex:1;flex-direction:column">
 
   <nav class="topbar">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()"
+         style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;display:none;padding:4px 8px;margin-right:8px">☰</button>
     <span class="brand">S-RETC</span>
     <span class="version">WEB v1.0</span>
     <div class="topbar-nav">
@@ -251,6 +273,7 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
       <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
       <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
+      <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin <span id="fbBadge" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
       <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin</button>
     </div>
     <div class="topbar-right">
@@ -262,7 +285,19 @@ body.dark .lib-item:hover{border-color:#60A5FA}
              style="background:rgba(255,255,255,.1);color:#CBD5E1" id="btnDark" title="Dark mode">🌙</button>
       <button class="btn-sm btn-logout" onclick="doLogout()">Đăng xuất</button>
     </div>
-  </nav>
+  
+<!-- Mobile nav -->
+<div id="mobileNav" style="display:none;position:fixed;top:52px;left:0;right:0;
+     background:#0F172A;z-index:200;padding:8px 0;flex-direction:column">
+  <button onclick="showPage('dash');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🏠 Dashboard</button>
+  <button onclick="showPage('projects');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">📁 Dự án</button>
+  <button onclick="showPage('chat');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🤖 Chatbot AI</button>
+  <button onclick="showPage('library');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">📚 Thư viện</button>
+  <button onclick="showPage('coords');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🗺️ Toạ độ</button>
+  <button onclick="showPage('profile');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">👤 Hồ sơ</button>
+  <button onclick="showPage('feedback');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">💬 Góp ý</button>
+</div>
+</nav>
 
   <div class="main-content">
 
@@ -621,6 +656,7 @@ function showApp() {
   document.getElementById('topName').textContent = currentUser.fullName;
   loadDashboard();
   loadLib('TCVN', null);
+  loadUnreadCount();
 }
 
 // Welcome toast
@@ -1111,6 +1147,21 @@ function showRulesHelp() {
 
 
 // ── Admin Panel ────────────────────────────────────────────────────
+
+async function loadUnreadCount() {
+  if (currentUser?.role !== 'Admin') return;
+  try {
+    const raw = await fbGet('Feedbacks').catch(()=>null);
+    if (!raw) return;
+    const unread = Object.values(raw).filter(f => f.Status !== 'Da xu ly').length;
+    const badge = document.getElementById('fbBadge');
+    if (badge) {
+      badge.style.display = unread > 0 ? '' : 'none';
+      badge.textContent = unread;
+    }
+  } catch(e) {}
+}
+
 function adminTab(tab, btn) {
   ['feedbacks','users','notice'].forEach(t => {
     document.getElementById('admin'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'':'none';
@@ -1258,6 +1309,11 @@ if (localStorage.getItem('sretc_dark')==='true') {
 }
 const saved = sessionStorage.getItem('sretc_user');
 // Show admin nav if admin
+function toggleMobileMenu() {
+  const nav = document.getElementById('mobileNav');
+  if (nav) nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+}
+
 function updateAdminNav() {
   const adminBtn = document.getElementById('navAdmin');
   if (adminBtn && currentUser?.role === 'Admin') adminBtn.style.display = '';
