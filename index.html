@@ -274,7 +274,6 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
       <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
       <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin <span id="fbBadge" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
-      <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin</button>
     </div>
     <div class="topbar-right">
       <div class="user-chip">
@@ -1052,7 +1051,7 @@ async function loadEstimate() {
 
 
 // ── Profile ────────────────────────────────────────────────────────
-function loadProfile() {
+async function loadProfile() {
   const u = currentUser;
   const el = document.getElementById('profileAvatar');
   const parts = (u.fullName||'?').split(' ');
