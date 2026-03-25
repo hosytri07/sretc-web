@@ -80,16 +80,56 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   display:flex;align-items:center;gap:8px}
 
 /* Dashboard */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:18px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
-.stat-icon{font-size:28px;line-height:1}
-.stat-val{font-size:22px;font-weight:800;color:var(--text)}
-.stat-label{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+  padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);
+  transition:.2s;cursor:default}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.stat-icon{font-size:24px;line-height:1;flex-shrink:0}
+.stat-val{font-size:22px;font-weight:800;color:var(--text);line-height:1}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px}
+.stat-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-top:4px;display:inline-block}
+.badge-up{background:#D1FAE5;color:#065F46}
+.badge-warn{background:#FEF3C7;color:#92400E}
+.badge-down{background:#FEE2E2;color:#991B1B}
 .notice-bar{background:linear-gradient(90deg,#EFF6FF,#DBEAFE);border:1px solid #BFDBFE;
-  border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:10px;margin-bottom:18px}
 .notice-bar .icon{font-size:18px}
 .notice-bar .text{font-size:13px;font-weight:600;color:var(--blue)}
+
+/* Charts */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.chart-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.donut-legend{display:flex;flex-direction:column;gap:5px;flex:1}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text)}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.bar-chart{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:flex;align-items:center;gap:7px;font-size:11px}
+.bar-label{width:80px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:12px;background:#F1F5F9;border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:.5s ease}
+.bar-val{width:28px;text-align:right;font-weight:700;font-size:10px;color:var(--muted)}
+
+/* Quick actions */
+.quick-actions{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.qa-btn{height:32px;padding:0 12px;border:1.5px solid var(--border);border-radius:8px;
+  background:var(--card);font-size:11px;font-weight:600;cursor:pointer;transition:.15s;
+  color:var(--text);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.qa-btn:hover{border-color:var(--accent);color:var(--accent);background:#EFF6FF}
+
+/* Activity feed */
+.activity-feed{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;box-shadow:var(--shadow)}
+.activity-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.act-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.act-text{font-size:12px;color:var(--text);flex:1;line-height:1.4}
+.act-time{font-size:10px;color:var(--muted);white-space:nowrap}
+
+/* Tooltip badge */
+.count-badge{background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px}
 
 /* Projects */
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
@@ -263,7 +303,7 @@ body.dark .lib-item:hover{border-color:#60A5FA}
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()"
          style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;display:none;padding:4px 8px;margin-right:8px">☰</button>
     <span class="brand">S-RETC</span>
-    <span class="version">WEB v1.0</span>
+    <span class="version">WEB v2.0</span>
     <div class="topbar-nav">
       <button onclick="showPage('dash')" id="navDash" class="active">🏠 Dashboard</button>
       <button onclick="showPage('projects')" id="navProjects">📁 Dự án</button>
@@ -273,8 +313,7 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
       <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
       <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
-      <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin <span id="fbBadge" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
-    </div>
+      <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin <span id="fbBadge" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>    </div>
     <div class="topbar-right">
       <div class="user-chip">
         <div class="avatar" id="topAvatar">?</div>
@@ -300,21 +339,100 @@ body.dark .lib-item:hover{border-color:#60A5FA}
 
   <div class="main-content">
 
+
     <!-- DASHBOARD -->
     <div id="pageDash" class="page active">
-      <div class="page-title">🏠 Dashboard</div>
+      <div class="page-title" id="dashGreet">🏠 Dashboard</div>
+
+      <!-- Admin notice -->
       <div id="noticeBar" class="notice-bar" style="display:none">
-        <span class="icon">📢</span><span class="text" id="noticeText"></span>
+        <span class="icon">📢</span>
+        <span class="text" id="noticeText"></span>
+        <span class="close" onclick="this.parentElement.style.display='none'">✕</span>
       </div>
+
+      <!-- Quick actions -->
+      <div class="quick-actions">
+        <button class="qa-btn" onclick="showPage('projects')">📁 Xem dự án</button>
+        <button class="qa-btn" onclick="showPage('estimate')">💰 Dự toán</button>
+        <button class="qa-btn" onclick="showPage('chat')">🤖 Hỏi AI</button>
+        <button class="qa-btn" onclick="showPage('coords')">🗺️ Toạ độ</button>
+        <button class="qa-btn" onclick="showPage('library')">📚 Thư viện</button>
+        <button class="qa-btn" onclick="loadDashboard()" title="Làm mới">🔄</button>
+      </div>
+
+      <!-- Stats -->
       <div class="stats-grid" id="statsGrid">
-        <div class="stat-card"><span class="stat-icon">📁</span>
-          <div><div class="stat-val" id="statTotal">--</div><div class="stat-label">Tổng dự án</div></div></div>
-        <div class="stat-card"><span class="stat-icon">⏳</span>
-          <div><div class="stat-val" id="statActive">--</div><div class="stat-label">Đang triển khai</div></div></div>
-        <div class="stat-card"><span class="stat-icon">✅</span>
-          <div><div class="stat-val" id="statDone">--</div><div class="stat-label">Hoàn thành</div></div></div>
-        <div class="stat-card"><span class="stat-icon">⚠️</span>
-          <div><div class="stat-val" id="statLate">--</div><div class="stat-label">Sắp hết hạn</div></div></div>
+        <div class="stat-card">
+          <span class="stat-icon">📁</span>
+          <div>
+            <div class="stat-val" id="statTotal">--</div>
+            <div class="stat-label">Tổng dự án</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">⏳</span>
+          <div>
+            <div class="stat-val" id="statActive">--</div>
+            <div class="stat-label">Đang triển khai</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">✅</span>
+          <div>
+            <div class="stat-val" id="statDone">--</div>
+            <div class="stat-label">Hoàn thành</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">⚠️</span>
+          <div>
+            <div class="stat-val" id="statLate">--</div>
+            <div class="stat-label">Sắp hết hạn</div>
+            <div class="stat-badge badge-warn" id="lateBadge" style="display:none">!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="chart-row" id="chartRow" style="display:none">
+        <!-- Donut: trạng thái -->
+        <div class="chart-card">
+          <div class="chart-title">📊 Phân bổ trạng thái</div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#F1F5F9" stroke-width="14"/>
+              <circle id="donutActive" cx="45" cy="45" r="36" fill="none"
+                stroke="#3B82F6" stroke-width="14" stroke-dasharray="0 226"
+                stroke-linecap="round" transform="rotate(-90 45 45)" style="transition:.6s"/>
+              <circle id="donutDone" cx="45" cy="45" r="36" fill="none"
+                stroke="#10B981" stroke-width="14" stroke-dasharray="0 226"
+                stroke-linecap="round" transform="rotate(-90 45 45)" style="transition:.6s"/>
+              <circle id="donutLate" cx="45" cy="45" r="36" fill="none"
+                stroke="#F59E0B" stroke-width="14" stroke-dasharray="0 226"
+                stroke-linecap="round" transform="rotate(-90 45 45)" style="transition:.6s"/>
+              <text x="45" y="49" text-anchor="middle" font-size="13" font-weight="800"
+                fill="#1E293B" id="donutCenter">--</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div><span>Đang TK: <b id="lgActive">0</b></span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div><span>Hoàn thành: <b id="lgDone">0</b></span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div><span>Sắp hạn: <b id="lgLate">0</b></span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Bar: tiến độ top projects -->
+        <div class="chart-card">
+          <div class="chart-title">📈 Tiến độ dự án</div>
+          <div class="bar-chart" id="barChart">
+            <div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Chưa có dữ liệu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project cards -->
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;letter-spacing:.5px">
+        DỰ ÁN GẦN ĐÂY
       </div>
       <div id="dashProjects" class="projects-grid"></div>
     </div>
@@ -329,10 +447,10 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <!-- Add project form -->
       <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:20px">
         <div style="font-size:13px;font-weight:700;color:#1E3A8A;margin-bottom:12px">➕ Thêm Dự án mới</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 120px auto;gap:10px;align-items:end">
           <div>
             <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tên dự án *</div>
-            <input id="newProjName" placeholder="VD: Cầu Kỳ Lam..." style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+            <input id="newProjName" placeholder="VD: Cầu Kỳ Lam, QL14B..." style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
           </div>
           <div>
             <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Nhóm trưởng</div>
@@ -341,6 +459,11 @@ body.dark .lib-item:hover{border-color:#60A5FA}
           <div>
             <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Deadline</div>
             <input id="newProjDeadline" type="date" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tiến độ (%)</div>
+            <input id="newProjPct" type="number" min="0" max="100" value="0"
+              style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
           </div>
           <button onclick="addProject()" style="height:36px;padding:0 16px;background:#1E3A8A;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">
             💾 Lưu
@@ -423,19 +546,31 @@ body.dark .lib-item:hover{border-color:#60A5FA}
         </div>
         <div style="display:flex;gap:8px;align-items:flex-start">
           <div class="coord-result" id="coordResult" style="flex:1">Nhập toạ độ và bấm Chuyển để xem kết quả...</div>
-          <button onclick="copyCoord('coordResult')"
-                  style="height:32px;padding:0 10px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;font-size:12px;cursor:pointer;flex-shrink:0;margin-top:0">
-            📋 Copy
-          </button>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button onclick="copyCoord('coordResult')"
+                    style="height:30px;padding:0 10px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap">
+              📋 Copy
+            </button>
+            <button onclick="openGoogleMaps()"
+                    style="height:30px;padding:0 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;font-size:11px;cursor:pointer;color:#1E40AF;font-weight:600;white-space:nowrap">
+              🗺️ Maps
+            </button>
+          </div>
         </div>
 
         <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)"/>
-        <h3 style="font-size:14px;font-weight:700;color:#7C3AED;margin-bottom:16px">WGS84 (Lat/Lng)</h3>
+        <h3 style="font-size:14px;font-weight:700;color:#7C3AED;margin-bottom:16px">WGS84 (Lat/Lng) → VN2000</h3>
         <div class="coord-row">
-          <div class="coord-field"><label>Latitude (Vĩ độ)</label><input id="inpLat" placeholder="15.97..." type="number" step="0.000001"/></div>
-          <div class="coord-field"><label>Longitude (Kinh độ)</label><input id="inpLng" placeholder="108.2..." type="number" step="0.000001"/></div>
+          <div class="coord-field"><label>Latitude (Vĩ độ)</label><input id="inpLat" placeholder="15.97..." type="number" step="0.000001" oninput="convertCoordsRev()"/></div>
+          <div class="coord-field"><label>Longitude (Kinh độ)</label><input id="inpLng" placeholder="108.2..." type="number" step="0.000001" oninput="convertCoordsRev()"/></div>
         </div>
-        <div id="coordResult2" class="coord-result" style="margin-top:8px">Điền Lat/Lng để xem chuyển ngược sang VN2000...</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;margin-top:8px">
+          <div id="coordResult2" class="coord-result" style="flex:1">Điền Lat/Lng để xem chuyển ngược sang VN2000...</div>
+          <button onclick="copyCoord('coordResult2')"
+                  style="height:30px;padding:0 10px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">
+            📋 Copy
+          </button>
+        </div>
       </div>
     </div>
 
@@ -700,13 +835,18 @@ async function loadDashboard() {
   const h = new Date().getHours();
   const greet = h < 12 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
   const name  = (currentUser.fullName || '').split(' ').pop();
-  const dashTitle = document.querySelector('#pageDash .page-title');
+  const dashTitle = document.getElementById('dashGreet');
   if (dashTitle) dashTitle.textContent = `🏠 ${greet}, ${name}!`;
 
   try {
     // Notice
     const notice = await fbGet('SystemData/AdminNotice').catch(()=>null);
-    if (notice) { document.getElementById('noticeBar').style.display='flex'; document.getElementById('noticeText').textContent=notice; }
+    const nb = document.getElementById('noticeBar');
+    if (notice && nb) {
+      nb.style.display='flex';
+      document.getElementById('noticeText').textContent = notice;
+    }
+
     // Projects
     const raw = await fbGet('Projects/' + currentUser.username).catch(()=>null);
     const projects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
@@ -714,12 +854,87 @@ async function loadDashboard() {
     const active = projects.filter(p=>p.Status==='InProgress').length;
     const done   = projects.filter(p=>p.Status==='Completed').length;
     const late   = projects.filter(p=>isLate(p.Deadline)).length;
+
     document.getElementById('statTotal').textContent  = total;
     document.getElementById('statActive').textContent = active;
     document.getElementById('statDone').textContent   = done;
     document.getElementById('statLate').textContent   = late;
-    renderProjects(projects.slice(0,6), 'dashProjects');
-  } catch(e){ console.error(e); }
+
+    // Late badge
+    const lb = document.getElementById('lateBadge');
+    if (lb) lb.style.display = late > 0 ? '' : 'none';
+
+    // Charts (show only if have data)
+    const chartRow = document.getElementById('chartRow');
+    if (total > 0 && chartRow) {
+      chartRow.style.display = 'grid';
+      renderDonutChart(active, done, late, total);
+      renderBarChart(projects);
+    }
+
+    // Recent projects (max 6)
+    renderProjects(projects.slice(0, 6), 'dashProjects');
+  } catch(e) { console.error(e); }
+}
+
+function renderDonutChart(active, done, late, total) {
+  const circ = 2 * Math.PI * 36; // 226.2
+  let offset = 0;
+
+  function setArc(id, count, color) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const len = total > 0 ? (count / total) * circ : 0;
+    el.setAttribute('stroke-dasharray', `${len.toFixed(1)} ${(circ - len).toFixed(1)}`);
+    el.setAttribute('stroke-dashoffset', (-offset).toFixed(1));
+    offset += len;
+  }
+
+  // Reset
+  ['donutActive','donutDone','donutLate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.setAttribute('stroke-dasharray','0 226'); el.setAttribute('stroke-dashoffset','0'); }
+  });
+
+  setTimeout(() => {
+    offset = 0;
+    setArc('donutActive', active, '#3B82F6');
+    setArc('donutDone', done, '#10B981');
+    setArc('donutLate', late, '#F59E0B');
+  }, 50);
+
+  const dc = document.getElementById('donutCenter');
+  if (dc) dc.textContent = total;
+  const lgA = document.getElementById('lgActive'); if (lgA) lgA.textContent = active;
+  const lgD = document.getElementById('lgDone');   if (lgD) lgD.textContent = done;
+  const lgL = document.getElementById('lgLate');   if (lgL) lgL.textContent = late;
+}
+
+function renderBarChart(projects) {
+  const el = document.getElementById('barChart');
+  if (!el) return;
+  // Top 5 projects by progress
+  const top = [...projects]
+    .filter(p => p.Status !== 'Completed')
+    .sort((a,b) => pct(b.WorkDone) - pct(a.WorkDone))
+    .slice(0, 5);
+  if (!top.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">Không có dự án đang thực hiện</div>';
+    return;
+  }
+  el.innerHTML = top.map(p => {
+    const p2 = pct(p.WorkDone);
+    const color = p2 < 40 ? '#EF4444' : p2 < 70 ? '#F59E0B' : '#10B981';
+    const name = (p.Name||'Dự án').substring(0, 14);
+    const isWarning = isLate(p.Deadline);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${p.Name||''}">${name}${isWarning?'⚠️':''}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${p2}%;background:${color}"></div>
+      </div>
+      <div class="bar-val" style="color:${color}">${p2}%</div>
+    </div>`;
+  }).join('');
 }
 
 function isLate(deadline) {
@@ -736,24 +951,44 @@ function pct(workDone) {
 
 function renderProjects(projects, containerId) {
   const el = document.getElementById(containerId);
-  if (!projects.length) { el.innerHTML='<div class="loading">Chưa có dự án nào</div>'; return; }
+  if (!el) return;
+  if (!projects.length) {
+    el.innerHTML='<div class="loading" style="grid-column:1/-1">Chưa có dự án nào. Thêm dự án mới bên trên!</div>';
+    return;
+  }
   el.innerHTML = projects.map(p=>{
     const p2 = pct(p.WorkDone);
-    const statusClass = p.Status==='Completed'?'status-done': isLate(p.Deadline)?'status-late':'status-active';
-    const statusText  = p.Status==='Completed'?'Hoàn thành': isLate(p.Deadline)?'Sắp hết hạn':'Đang TK';
-    const color       = p2<40?'#EF4444': p2<80?'#F97316':'#10B981';
+    const statusClass = p.Status==='Completed' ? 'status-done' : isLate(p.Deadline) ? 'status-late' : 'status-active';
+    const statusText  = p.Status==='Completed' ? '✅ Hoàn thành' : isLate(p.Deadline) ? '⚠️ Sắp hạn' : '⏳ Đang TK';
+    const color = p2<40 ? '#EF4444' : p2<80 ? '#F97316' : '#10B981';
+    const deadline = p.Deadline ? new Date(p.Deadline).toLocaleDateString('vi-VN') : '—';
     return `<div class="proj-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
-        <div class="proj-name">${p.Name||'Dự án'}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+        <div class="proj-name" style="flex:1;margin-right:8px">${escHtml(p.Name||'Dự án')}</div>
         <span class="proj-status ${statusClass}">${statusText}</span>
       </div>
-      <div class="proj-meta">👤 ${p.Leader||'—'} &nbsp;|&nbsp; 📅 ${p.Deadline||'—'}</div>
-      <div style="margin:8px 0 4px;display:flex;justify-content:space-between;font-size:11px;color:#6B7280">
-        <span>Tiến độ</span><strong style="color:${color}">${p2}%</strong>
+      <div class="proj-meta">
+        👤 ${escHtml(p.Leader||'—')} &nbsp;·&nbsp; 📅 ${deadline}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 4px;font-size:11px;color:#6B7280">
+        <span>Tiến độ</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="range" min="0" max="100" value="${p2}"
+            style="width:60px;height:4px;cursor:pointer;accent-color:${color}"
+            oninput="this.nextElementSibling.textContent=this.value+'%'"
+            onchange="updateProgress('${p.id}',this.value)"/>
+          <strong style="color:${color};min-width:32px">${p2}%</strong>
+        </div>
       </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${p2}%;background:${color}"></div></div>
-      ${p.WorkDone ? `<div style="font-size:11px;color:#059669;margin-top:6px;font-style:italic">📝 ${p.WorkDone.substring(0,80)}</div>` : ''}
-      ${p.Status!=='Completed' ? `<button onclick="markDone('${p.id}')" style="margin-top:8px;height:28px;padding:0 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✔ Hoàn thành</button>` : ''}
+      ${p.WorkDone ? `<div style="font-size:11px;color:#059669;margin-top:6px;font-style:italic">📝 ${escHtml(p.WorkDone.substring(0,60))}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        ${p.Status!=='Completed' ? `<button onclick="markDone('${p.id}')"
+          style="flex:1;height:26px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✔ Hoàn thành</button>` : ''}
+        <button onclick="deleteProject('${p.id}')"
+          style="height:26px;padding:0 10px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer"
+          title="Xóa dự án">🗑</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -851,6 +1086,17 @@ async function loadLib(cat, btn) {
         <span class="arrow">→</span>
       </div>`).join('');
   } catch(e){ el.innerHTML='<div class="loading">Lỗi tải thư viện — kiểm tra Firebase Rules</div>'; }
+}
+
+function openGoogleMaps() {
+  const result = document.getElementById('coordResult')?.textContent || '';
+  const latMatch = result.match(/Latitude[^:]*:\s*([\d.]+)/);
+  const lngMatch = result.match(/Longitude[^:]*:\s*([\d.]+)/);
+  if (latMatch && lngMatch) {
+    window.open(`https://www.google.com/maps?q=${latMatch[1]},${lngMatch[1]}&z=15`, '_blank');
+  } else {
+    showToast('❌ Chưa có kết quả toạ độ. Bấm Chuyển trước!', '#EF4444');
+  }
 }
 
 function copyCoord(elId) {
@@ -989,25 +1235,27 @@ async function addProject() {
   const name     = document.getElementById('newProjName').value.trim();
   const leader   = document.getElementById('newProjLeader').value.trim();
   const deadline = document.getElementById('newProjDeadline').value;
+  const pctVal   = parseInt(document.getElementById('newProjPct')?.value || '0') || 0;
   if (!name) { showToast('❌ Nhập tên dự án!', '#EF4444'); return; }
 
   const id = 'proj_' + Date.now();
-  const data = { Name: name, Leader: leader, Deadline: deadline,
-                 Status: 'InProgress', WorkDone: '', Description: '' };
+  const data = {
+    Name: name, Leader: leader, Deadline: deadline,
+    Status: pctVal >= 100 ? 'Completed' : 'InProgress',
+    WorkDone: pctVal + '%', Description: ''
+  };
   try {
     const url = `${FB_URL}/Projects/${currentUser.username}/${id}.json`;
     const r = await fetch(url, {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
+      method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
     });
     if (!r.ok) throw new Error(r.status);
     document.getElementById('newProjName').value = '';
     document.getElementById('newProjLeader').value = '';
     document.getElementById('newProjDeadline').value = '';
+    if (document.getElementById('newProjPct')) document.getElementById('newProjPct').value = '0';
     showToast('✅ Đã thêm dự án: ' + name, '#059669');
-    loadProjects();
-    loadDashboard();
+    loadProjects(); loadDashboard();
   } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
 }
 
@@ -1017,9 +1265,30 @@ async function markDone(projId) {
     const url = `${FB_URL}/Projects/${currentUser.username}/${projId}/Status.json`;
     await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:'"Completed"' });
     showToast('✅ Đã đánh dấu hoàn thành!', '#059669');
-    loadProjects();
-    loadDashboard();
+    loadProjects(); loadDashboard();
   } catch(e){ showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+async function updateProgress(projId, value) {
+  try {
+    const url = `${FB_URL}/Projects/${currentUser.username}/${projId}/WorkDone.json`;
+    await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(value + '%') });
+    // Refresh charts quietly
+    const raw = await fbGet('Projects/' + currentUser.username).catch(()=>null);
+    if (raw) {
+      const projects = Object.entries(raw).map(([id,v])=>({id,...v}));
+      renderBarChart(projects);
+    }
+  } catch(e) { console.warn('Progress update:', e.message); }
+}
+
+async function deleteProject(projId) {
+  if (!confirm('Xóa dự án này? Hành động không thể hoàn tác!')) return;
+  try {
+    await fetch(`${FB_URL}/Projects/${currentUser.username}/${projId}.json`, { method:'DELETE' });
+    showToast('🗑 Đã xóa dự án', '#64748B');
+    loadProjects(); loadDashboard();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
 }
 
 // ── Estimate (view only) ─────────────────────────────────────────
@@ -1075,6 +1344,7 @@ async function saveProfile() {
   const fullName = document.getElementById('profileFullName')?.value.trim() || '';
   const newPass  = document.getElementById('profileNewPass')?.value || '';
   const confPass = document.getElementById('profileConfPass')?.value || '';
+  const tgId     = document.getElementById('profileTgId')?.value.trim() || '';
 
   if (!fullName) { showToast('❌ Họ tên không được để trống!', '#EF4444'); return; }
   if (newPass && newPass !== confPass) { showToast('❌ Mật khẩu xác nhận không khớp!', '#EF4444'); return; }
@@ -1094,6 +1364,13 @@ async function saveProfile() {
       });
     }
 
+    // Save Telegram Chat ID
+    if (tgId) {
+      await fetch(`${FB_URL}/Users/${currentUser.username}/TelegramChatId.json`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(tgId)
+      });
+    }
+
     // Update session
     currentUser.fullName = fullName;
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
@@ -1101,9 +1378,14 @@ async function saveProfile() {
     const av = fullName.split(' ');
     const initials = av.length>1 ? av[0][0]+av[av.length-1][0] : av[0][0];
     document.getElementById('topAvatar').textContent = initials.toUpperCase();
+    const pa = document.getElementById('profileAvatar');
+    if (pa) pa.textContent = initials.toUpperCase();
 
     showToast('✅ Đã lưu hồ sơ thành công!', '#059669');
-    if (newPass) { document.getElementById('profileNewPass').value=''; document.getElementById('profileConfPass').value=''; }
+    if (newPass) {
+      document.getElementById('profileNewPass').value='';
+      document.getElementById('profileConfPass').value='';
+    }
   } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
 }
 
