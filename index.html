@@ -476,21 +476,82 @@ body.dark .lib-item:hover{border-color:#60A5FA}
 
     <!-- CHATBOT -->
     <div id="pageChat" class="page">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div class="page-title" style="margin-bottom:0">🤖 Chatbot AI S-RETC</div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:#64748B;background:#F1F5F9;padding:4px 10px;border-radius:20px;font-weight:600">llama-3.3-70b</span>
-          <button onclick="clearChat()" style="height:32px;padding:0 12px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🗑 Xoá chat</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <!-- Model selector -->
+          <select id="chatModel" style="height:30px;border:1.5px solid #E2E8F0;border-radius:6px;
+            padding:0 8px;font-size:11px;font-weight:600;color:#374151;cursor:pointer">
+            <option value="llama-3.3-70b-versatile">⚡ Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">🚀 Llama 3.1 8B (nhanh)</option>
+            <option value="llama-3.2-90b-text-preview">🧠 Llama 3.2 90B</option>
+            <option value="gemma2-9b-it">💎 Gemma 2 9B</option>
+          </select>
+          <!-- RAG button -->
+          <button onclick="toggleRagPanel()" id="btnRag"
+            style="height:30px;padding:0 10px;background:#F5F3FF;color:#7C3AED;border:1.5px solid #DDD6FE;
+              border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+            📎 RAG <span id="ragCount" style="background:#7C3AED;color:#fff;border-radius:10px;padding:0 5px;margin-left:2px">0</span>
+          </button>
+          <button onclick="clearChat()"
+            style="height:30px;padding:0 10px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+            🗑 Xoá
+          </button>
         </div>
       </div>
-      <div class="chat-container">
-        <div class="chat-messages" id="chatMessages">
-          <div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC. Bạn cần hỗ trợ gì về thiết kế cầu đường, TCVN, hay dự toán?</div>
+
+      <!-- RAG Panel (toggle) -->
+      <div id="ragPanel" style="display:none;background:#F5F3FF;border:1.5px solid #DDD6FE;
+          border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:#5B21B6;margin-bottom:8px">
+          📎 Tài liệu tham khảo (RAG) — Chatbot sẽ dùng nội dung các file này để trả lời
         </div>
-        <div id="chatGroqKey" style="display:none">⚠️ Chưa có Groq API Key — Admin cần cấu hình</div>
-        <div class="chat-input-row">
-          <input id="chatInput" placeholder="Nhập câu hỏi về thiết kế cầu đường, TCVN..." onkeydown="if(event.key==='Enter')sendChat()"/>
-          <button onclick="sendChat()">Gửi ▶</button>
+        <div id="ragFileList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:28px">
+          <span style="font-size:11px;color:#9CA3AF;font-style:italic">Chưa có tài liệu nào. Dán URL Drive PDF bên dưới.</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input id="ragUrlInput" placeholder="Dán URL Google Drive PDF (chia sẻ công khai)..."
+            style="flex:1;height:32px;border:1.5px solid #DDD6FE;border-radius:6px;padding:0 10px;font-size:12px"/>
+          <input id="ragNameInput" placeholder="Tên tài liệu" 
+            style="width:150px;height:32px;border:1.5px solid #DDD6FE;border-radius:6px;padding:0 10px;font-size:12px"/>
+          <button onclick="addRagDoc()" style="height:32px;padding:0 12px;background:#7C3AED;color:#fff;
+            border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">➕ Thêm</button>
+          <button onclick="clearRag()" style="height:32px;padding:0 10px;background:#EDE9FE;color:#7C3AED;
+            border:1px solid #DDD6FE;border-radius:6px;font-size:11px;cursor:pointer">🗑 Xóa hết</button>
+        </div>
+        <div style="font-size:10px;color:#9CA3AF;margin-top:6px">
+          💡 Tip: Chia sẻ file PDF trên Google Drive → "Anyone with link" → copy link → dán vào đây
+        </div>
+      </div>
+
+      <!-- Quick prompt chips -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="quickPrompts">
+        <span style="font-size:11px;color:#9CA3AF;margin-right:2px">Hỏi nhanh:</span>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">TCVN 4054 tải trọng</button>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">Tính tải trọng cầu</button>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">Công thức manning</button>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">Chiều dày áo đường</button>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">Độ dốc tối thiểu</button>
+        <button onclick="quickSend(this)" class="qa-btn" style="font-size:11px;height:26px">Hệ số ma sát đất</button>
+      </div>
+
+      <div class="chat-container" style="height:calc(100vh - 290px)">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC chuyên ngành cầu đường Việt Nam. 
+Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đính kèm tài liệu PDF qua nút <strong>📎 RAG</strong> để tôi đọc và tư vấn chính xác hơn.</div>
+        </div>
+        <div id="chatGroqKey" style="display:none;padding:8px 16px;background:#FEF3C7;font-size:12px;color:#92400E;font-weight:600">
+          ⚠️ Chưa có Groq API Key — Admin cần cấu hình tại Firebase SystemData/GroqApiKey
+        </div>
+        <div class="chat-input-row" style="gap:8px">
+          <textarea id="chatInput" rows="2" placeholder="Nhập câu hỏi... (Enter gửi, Shift+Enter xuống dòng)"
+            style="flex:1;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;
+              resize:none;font-family:inherit;line-height:1.4"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+          <button onclick="sendChat()" style="height:52px;padding:0 18px;background:#1E3A8A;color:#fff;
+            border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">
+            Gửi ▶
+          </button>
         </div>
       </div>
     </div>
@@ -671,36 +732,66 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <div class="page-title">🛡️ Quản trị hệ thống</div>
 
       <!-- Tabs -->
-      <div class="lib-tabs" style="margin-bottom:20px">
-        <button class="lib-tab active" onclick="adminTab('feedbacks',this)">💬 Phản hồi</button>
+      <div class="lib-tabs" style="margin-bottom:16px">
+        <button class="lib-tab active" onclick="adminTab('feedbacks',this)">💬 Phản hồi <span id="fbBadgeTab" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:2px">0</span></button>
         <button class="lib-tab" onclick="adminTab('users',this)">👥 Users</button>
         <button class="lib-tab" onclick="adminTab('notice',this)">📢 Thông báo</button>
+        <button class="lib-tab" onclick="adminTab('apikeys',this)">🔑 API Keys</button>
+        <button class="lib-tab" onclick="adminTab('stats',this)">📊 Thống kê</button>
       </div>
 
       <!-- Feedbacks -->
       <div id="adminFeedbacks">
-        <div id="fbList" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600;color:#374151">Danh sách phản hồi từ users</span>
+          <button onclick="loadAdminFeedbacks()" style="height:28px;padding:0 10px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:6px;font-size:11px;cursor:pointer">🔄 Làm mới</button>
+        </div>
+        <div id="fbList" style="display:flex;flex-direction:column;gap:8px">
           <div class="loading"><span class="spinner"></span>Đang tải...</div>
         </div>
       </div>
 
       <!-- Users -->
       <div id="adminUsers" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600;color:#374151">Quản lý tài khoản</span>
+          <button onclick="loadAdminUsers()" style="height:28px;padding:0 10px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:6px;font-size:11px;cursor:pointer">🔄 Làm mới</button>
+        </div>
         <div id="userList" style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden">
           <div class="loading"><span class="spinner"></span>Đang tải...</div>
         </div>
       </div>
 
       <!-- Notice -->
-      <div id="adminNotice" style="display:none;max-width:560px">
+      <div id="adminNotice" style="display:none;max-width:600px">
         <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:20px">
-          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">Nội dung thông báo Dashboard:</div>
-          <textarea id="noticeInput" rows="4"
-                    style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:12px"></textarea>
+          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px">📢 Thông báo hiển thị trên Dashboard của tất cả users:</div>
+          <textarea id="noticeInput" rows="4" placeholder="VD: Hệ thống bảo trì ngày 15/03/2026 từ 22:00-23:00..."
+            style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;margin-bottom:12px"></textarea>
           <div style="display:flex;gap:10px">
-            <button onclick="saveNotice()" style="height:38px;padding:0 20px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 Lưu thông báo</button>
-            <button onclick="clearNotice()" style="height:38px;padding:0 16px;background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;font-weight:600;cursor:pointer">🗑 Xóa</button>
+            <button onclick="saveNotice()" style="height:36px;padding:0 20px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 Lưu thông báo</button>
+            <button onclick="clearNotice()" style="height:36px;padding:0 14px;background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;font-weight:600;cursor:pointer">🗑 Xóa</button>
           </div>
+        </div>
+      </div>
+
+      <!-- API Keys -->
+      <div id="adminApikeys" style="display:none;max-width:600px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:20px">
+          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:16px">🔑 Cấu hình API Keys (lưu Firebase SystemData)</div>
+          <div id="apiKeysList" style="display:flex;flex-direction:column;gap:12px">
+            <div class="loading"><span class="spinner"></span>Đang tải...</div>
+          </div>
+          <button onclick="saveApiKeys()" style="margin-top:16px;height:38px;padding:0 24px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">
+            💾 Lưu tất cả API Keys
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div id="adminStats" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px" id="adminStatsGrid">
+          <div class="loading"><span class="spinner"></span>Đang tải thống kê...</div>
         </div>
       </div>
     </div>
@@ -1005,48 +1096,94 @@ async function loadProjects() {
 
 // ── Chatbot ────────────────────────────────────────────────────────
 let chatHistory = [];
+let ragDocs = []; // [{name, url}]
+
+function toggleRagPanel() {
+  const p = document.getElementById('ragPanel');
+  if (p) p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+
+function addRagDoc() {
+  const url  = document.getElementById('ragUrlInput')?.value.trim() || '';
+  const name = document.getElementById('ragNameInput')?.value.trim() || 'TL ' + (ragDocs.length+1);
+  if (!url) { showToast('❌ Nhập URL tài liệu!', '#EF4444'); return; }
+  if (ragDocs.find(d => d.url === url)) { showToast('⚠️ URL này đã thêm rồi', '#F59E0B'); return; }
+  ragDocs.push({ name, url });
+  renderRagList();
+  if(document.getElementById('ragUrlInput')) document.getElementById('ragUrlInput').value = '';
+  if(document.getElementById('ragNameInput')) document.getElementById('ragNameInput').value = '';
+  showToast('✅ Đã thêm: ' + name, '#059669');
+}
+
+function removeRagDoc(idx) { ragDocs.splice(idx, 1); renderRagList(); }
+
+function clearRag() { ragDocs = []; renderRagList(); showToast('🗑 Đã xóa RAG', '#64748B'); }
+
+function renderRagList() {
+  const el = document.getElementById('ragFileList');
+  const cnt = document.getElementById('ragCount');
+  if (cnt) cnt.textContent = ragDocs.length;
+  if (!el) return;
+  if (!ragDocs.length) { el.innerHTML = '<span style="font-size:11px;color:#9CA3AF;font-style:italic">Chưa có tài liệu.</span>'; return; }
+  el.innerHTML = ragDocs.map((d,i) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;background:#EDE9FE;color:#5B21B6;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">
+      📄 ${escHtml(d.name)}
+      <button onclick="removeRagDoc(${i})" style="background:none;border:none;cursor:pointer;color:#7C3AED;font-size:13px;line-height:1;padding:0 2px">×</button>
+    </span>`).join('');
+}
+
+function quickSend(btn) {
+  const inp = document.getElementById('chatInput');
+  if (inp) { inp.value = btn.textContent.trim(); sendChat(); }
+}
 
 async function sendChat() {
   const inp = document.getElementById('chatInput');
-  const msg = inp.value.trim();
+  const msg = inp?.value.trim();
   if (!msg) return;
   inp.value = '';
   addMsg(msg, 'user');
-  const typingId = addMsg('Đang suy nghĩ...', 'bot', true);
-
+  const typingId = addMsg('⏳ Đang suy nghĩ...', 'bot', true);
   try {
     const apiKey = await fbGet('SystemData/GroqApiKey').catch(()=>null);
     if (!apiKey) {
-      updateMsg(typingId, '❌ Chưa có Groq API Key. Admin cần cấu hình trong SystemData/GroqApiKey trên Firebase.');
+      updateMsg(typingId, '❌ Chưa có Groq API Key. Admin cần cấu hình tại Firebase → SystemData/GroqApiKey');
+      const cg = document.getElementById('chatGroqKey'); if(cg) cg.style.display='';
       return;
     }
-    chatHistory.push({role:'user', content: msg});
+    const model = document.getElementById('chatModel')?.value || 'llama-3.3-70b-versatile';
+    let sysPrompt = `Ban la tro ly AI S-RETC chuyen nganh cau duong, ky thuat xay dung Viet Nam.
+Tra loi chinh xac bang tieng Viet. Ap dung TCVN, QCVN. Neu tinh toan thi ghi ro cong thuc va don vi.`;
+    if (ragDocs.length > 0) {
+      sysPrompt += '\n\nTAI LIEU THAM KHAO (user da cung cap):\n' +
+        ragDocs.map(d => '- ' + d.name + ': ' + d.url).join('\n') +
+        '\nHay tham khao cac tai lieu nay de tra loi chinh xac hon.';
+    }
+    chatHistory.push({ role:'user', content: msg });
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {role:'system', content:'Ban la tro ly AI chuyen nganh cau duong Viet Nam (S-RETC). Tra loi ngan gon, chinh xac, bang tieng Viet. Su dung kien thuc TCVN, tieu chuan thiet ke cau duong.'},
-          ...chatHistory.slice(-10)
-        ],
-        max_tokens: 800, temperature: 0.5
+        model, max_tokens: 1200, temperature: 0.4,
+        messages: [{ role:'system', content: sysPrompt }, ...chatHistory.slice(-12)]
       })
     });
     const data = await resp.json();
-    const reply = data.choices?.[0]?.message?.content || 'Xin loi, co loi xay ra.';
-    chatHistory.push({role:'assistant', content: reply});
-    updateMsg(typingId, reply);
-  } catch(e) {
-    updateMsg(typingId, '❌ Lỗi kết nối: ' + e.message);
-  }
+    if (!resp.ok) throw new Error(data.error?.message || resp.status);
+    const reply = data.choices?.[0]?.message?.content || 'Co loi xay ra.';
+    chatHistory.push({ role:'assistant', content: reply });
+    updateMsgMarkdown(typingId, reply);
+  } catch(e) { updateMsg(typingId, '❌ Lỗi: ' + e.message); }
 }
 
 function addMsg(text, who, isTyping=false) {
   const div = document.getElementById('chatMessages');
-  const id = 'msg_' + Date.now();
+  const id = 'msg_' + Date.now() + Math.random().toString(36).slice(2,5);
+  const t = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
   div.insertAdjacentHTML('beforeend',
-    `<div id="${id}" class="msg msg-${who}${isTyping?' msg-typing':''}">${escHtml(text)}</div>`);
+    `<div id="${id}" class="msg msg-${who}${isTyping?' msg-typing':''}">
+      ${isTyping ? escHtml(text) : escHtml(text) + `<div style="font-size:9px;opacity:.5;margin-top:4px;text-align:${who==='user'?'right':'left'}">${t}</div>`}
+    </div>`);
   div.scrollTop = div.scrollHeight;
   return id;
 }
@@ -1055,12 +1192,29 @@ function updateMsg(id, text) {
   if (el) { el.textContent = text; el.classList.remove('msg-typing'); }
   document.getElementById('chatMessages').scrollTop = 999999;
 }
+function updateMsgMarkdown(id, md) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('msg-typing');
+  const t = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  let html = escHtml(md)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code style="background:#F1F5F9;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+    .replace(/^#{1,3}\s(.+)$/gm,'<div style="font-weight:700;color:#1E3A8A;margin:6px 0 2px">$1</div>')
+    .replace(/^[-•]\s(.+)$/gm,'<div style="padding-left:10px">• $1</div>')
+    .replace(/\n/g,'<br>');
+  el.innerHTML = html + `<div style="font-size:9px;opacity:.5;margin-top:6px">${t}</div>`;
+  document.getElementById('chatMessages').scrollTop = 999999;
+}
 function clearChat() {
   chatHistory = [];
   const el = document.getElementById('chatMessages');
-  el.innerHTML = '<div class="msg msg-bot">Xin chào! Tôi là trợ lý AI S-RETC. Bạn cần hỗ trợ gì?</div>';
-  showToast('🗑 Đã xoá lịch sử chat', '#64748B');
+  const t = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = `<div class="msg msg-bot">Chat đã xóa. Sẵn sàng hỗ trợ bạn!<div style="font-size:9px;opacity:.5;margin-top:4px">${t}</div></div>`;
+  showToast('🗑 Đã xoá chat', '#64748B');
 }
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
@@ -1509,23 +1663,158 @@ async function loadUnreadCount() {
     const raw = await fbGet('Feedbacks').catch(()=>null);
     if (!raw) return;
     const unread = Object.values(raw).filter(f => f.Status !== 'Da xu ly').length;
+    // Update topbar badge
     const badge = document.getElementById('fbBadge');
-    if (badge) {
-      badge.style.display = unread > 0 ? '' : 'none';
-      badge.textContent = unread;
-    }
+    if (badge) { badge.style.display = unread > 0 ? '' : 'none'; badge.textContent = unread; }
+    // Update admin tab badge
+    const badgeTab = document.getElementById('fbBadgeTab');
+    if (badgeTab) { badgeTab.style.display = unread > 0 ? '' : 'none'; badgeTab.textContent = unread; }
   } catch(e) {}
 }
 
 function adminTab(tab, btn) {
-  ['feedbacks','users','notice'].forEach(t => {
-    document.getElementById('admin'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'':'none';
+  ['feedbacks','users','notice','apikeys','stats'].forEach(t => {
+    const el = document.getElementById('admin' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (el) el.style.display = t===tab ? '' : 'none';
   });
   document.querySelectorAll('#pageAdmin .lib-tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(tab==='feedbacks') loadAdminFeedbacks();
-  if(tab==='users') loadAdminUsers();
-  if(tab==='notice') loadAdminNotice();
+  if(tab==='users')     loadAdminUsers();
+  if(tab==='notice')    loadAdminNotice();
+  if(tab==='apikeys')   loadApiKeys();
+  if(tab==='stats')     loadAdminStats();
+}
+
+// ── API Keys management ───────────────────────────────────────────
+const API_KEY_FIELDS = [
+  { key:'GroqApiKey',      label:'Groq API Key',         placeholder:'gsk_...',  hint:'Dùng cho Chatbot AI + CAD Agent + OCR' },
+  { key:'OpenRouterApiKey',label:'OpenRouter API Key',   placeholder:'sk-or-...', hint:'Model dự phòng' },
+  { key:'ImgBbApiKey',     label:'ImgBB API Key',        placeholder:'abc123...', hint:'Upload ảnh avatar' },
+  { key:'TelegramAdminChatId', label:'Telegram Admin Chat ID', placeholder:'123456789', hint:'Nhận OTP reset mật khẩu' },
+];
+
+async function loadApiKeys() {
+  const el = document.getElementById('apiKeysList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const data = await fbGet('SystemData').catch(()=>({}));
+    el.innerHTML = API_KEY_FIELDS.map(f => `
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:3px">${f.label}</div>
+        <div style="font-size:10px;color:#9CA3AF;margin-bottom:4px">💡 ${f.hint}</div>
+        <div style="display:flex;gap:6px">
+          <input id="apikey_${f.key}" type="password" value="${escHtml(data[f.key]||'')}"
+            placeholder="${f.placeholder}"
+            style="flex:1;height:34px;border:1.5px solid #E2E8F0;border-radius:6px;padding:0 10px;font-size:12px;font-family:monospace"/>
+          <button onclick="toggleKeyVisibility('apikey_${f.key}')"
+            style="height:34px;padding:0 8px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:13px"
+            title="Hiện/ẩn">👁</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div style="color:#EF4444">Lỗi tải: '+e.message+'</div>'; }
+}
+
+function toggleKeyVisibility(inputId) {
+  const inp = document.getElementById(inputId);
+  if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function saveApiKeys() {
+  try {
+    for (const f of API_KEY_FIELDS) {
+      const val = document.getElementById('apikey_' + f.key)?.value.trim() || '';
+      if (val) {
+        await fetch(`${FB_URL}/SystemData/${f.key}.json`, {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(val)
+        });
+      }
+    }
+    showToast('✅ Đã lưu tất cả API Keys!', '#059669');
+  } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
+}
+
+// ── Admin Stats ──────────────────────────────────────────────────
+async function loadAdminStats() {
+  const el = document.getElementById('adminStatsGrid');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải thống kê...</div>';
+  try {
+    const [usersRaw, fbRaw] = await Promise.all([
+      fbGet('Users').catch(()=>({})),
+      fbGet('Feedbacks').catch(()=>({}))
+    ]);
+    const users = usersRaw ? Object.entries(usersRaw) : [];
+    const feedbacks = fbRaw ? Object.values(fbRaw) : [];
+    const roles = {};
+    users.forEach(([,u]) => { const r = u.Role||'NguoiDung'; roles[r] = (roles[r]||0)+1; });
+    const fbDone = feedbacks.filter(f=>f.Status==='Da xu ly').length;
+    const fbPending = feedbacks.length - fbDone;
+
+    el.innerHTML = `
+      <div class="chart-card">
+        <div class="chart-title">👥 Tổng quan Users</div>
+        <div style="font-size:28px;font-weight:800;color:#1E3A8A;margin:8px 0">${users.length}</div>
+        <div style="font-size:12px;color:#6B7280">tài khoản đăng ký</div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:5px">
+          ${Object.entries(roles).map(([r,c])=>`
+            <div class="bar-row">
+              <div class="bar-label">${r}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${(c/users.length*100).toFixed(0)}%;background:#3B82F6"></div></div>
+              <div class="bar-val">${c}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">💬 Phản hồi hệ thống</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <div style="text-align:center;padding:12px;background:#FEF3C7;border-radius:8px">
+            <div style="font-size:24px;font-weight:800;color:#92400E">${fbPending}</div>
+            <div style="font-size:11px;color:#92400E;font-weight:600">Chờ xử lý</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px">
+            <div style="font-size:24px;font-weight:800;color:#065F46">${fbDone}</div>
+            <div style="font-size:11px;color:#065F46;font-weight:600">Đã xử lý</div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          ${feedbacks.slice(-3).reverse().map(f=>`
+            <div style="font-size:11px;padding:4px 0;border-bottom:1px solid #F1F5F9;color:#374151">
+              ${f.Type||'—'}: ${escHtml((f.Content||'').substring(0,40))}...
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📋 Hoạt động gần đây</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+          ${users.slice(-5).reverse().map(([u,d])=>`
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+              <div style="width:28px;height:28px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;
+                justify-content:center;font-weight:700;color:#1E3A8A;font-size:11px;flex-shrink:0">
+                ${(d.FullName||u)[0].toUpperCase()}
+              </div>
+              <div>
+                <div style="font-weight:600">${escHtml(d.FullName||u)}</div>
+                <div style="color:#9CA3AF">${d.Role||'NguoiDung'} · ${d.PasswordWeb?'✅ Web':'⏳ Chưa kích hoạt web'}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) { el.innerHTML = '<div style="color:#EF4444;padding:20px">Lỗi tải thống kê: '+e.message+'</div>'; }
+}
+
+// ── Reset password (Admin) ────────────────────────────────────────
+async function adminResetPass(username) {
+  const newPass = prompt(`Đặt mật khẩu mới cho "${username}" (tối thiểu 4 ký tự):`);
+  if (!newPass || newPass.length < 4) { showToast('❌ Mật khẩu không hợp lệ', '#EF4444'); return; }
+  try {
+    const hash = await sha256(newPass);
+    await fetch(`${FB_URL}/Users/${username}/PasswordWeb.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(hash)
+    });
+    showToast(`✅ Đã reset mật khẩu cho ${username}`, '#059669');
+  } catch(e) { showToast('❌ Lỗi: '+e.message, '#EF4444'); }
 }
 
 async function loadAdminFeedbacks() {
@@ -1607,8 +1896,12 @@ async function loadAdminUsers() {
               </td>
               <td style="padding:10px 14px;text-align:center">
                 ${u.IsApproved===false
-                  ? `<button onclick="approveUser('${u.username}')" style="height:28px;padding:0 10px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✓ Duyệt</button>`
+                  ? `<button onclick="approveUser('${u.username}')" style="height:26px;padding:0 8px;background:#10B981;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✓ Duyệt</button>`
                   : ''}
+                <button onclick="adminResetPass('${u.username}')"
+                  style="height:26px;padding:0 8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">
+                  🔑 Reset
+                </button>
               </td>
             </tr>`).join('')}
         </tbody>
