@@ -843,6 +843,7 @@ Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đ�
         <button class="lib-tab" onclick="adminTab('users',this)">👥 Users</button>
         <button class="lib-tab" onclick="adminTab('notice',this)">📢 Thông báo</button>
         <button class="lib-tab" onclick="adminTab('apikeys',this)">🔑 API Keys</button>
+        <button class="lib-tab" onclick="adminTab('calc',this)">🧮 Bảng tính</button>
         <button class="lib-tab" onclick="adminTab('stats',this)">📊 Thống kê</button>
       </div>
 
@@ -898,6 +899,51 @@ Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đ�
       <div id="adminStats" style="display:none">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px" id="adminStatsGrid">
           <div class="loading"><span class="spinner"></span>Đang tải thống kê...</div>
+        </div>
+      </div>
+
+      <!-- Bảng tính submissions -->
+      <div id="adminCalc" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- Danh sách submissions -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:13px;font-weight:700;color:#374151">📥 Yêu cầu từ users</span>
+              <button onclick="loadCalcSubmissions()" style="height:28px;padding:0 10px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:6px;font-size:11px;cursor:pointer">🔄</button>
+            </div>
+            <div id="calcSubList" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto">
+              <div class="loading"><span class="spinner"></span>Đang tải...</div>
+            </div>
+          </div>
+
+          <!-- Set Drive link -->
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">🔗 Cung cấp file Excel cho users</div>
+            <div style="background:#F0FDF4;border:1px solid #A7F3D0;border-radius:10px;padding:16px">
+              <div style="margin-bottom:10px">
+                <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:4px">Google Drive link *</div>
+                <input id="adminCalcLink" placeholder="https://drive.google.com/..."
+                  style="width:100%;height:34px;border:1.5px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px"/>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:4px">Mô tả file</div>
+                <input id="adminCalcNote" placeholder="VD: Bảng tính thủy lực Manning v1.2"
+                  style="width:100%;height:34px;border:1.5px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px"/>
+              </div>
+              <button onclick="adminSaveCalcDriveLink()"
+                style="width:100%;height:36px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
+                💾 Lưu link Drive
+              </button>
+
+              <!-- Current link display -->
+              <div id="calcCurrentLink" style="display:none;margin-top:12px;padding:10px;background:#ECFDF5;border-radius:8px">
+                <div style="font-size:11px;font-weight:600;color:#065F46;margin-bottom:4px">Link hiện tại:</div>
+                <div id="calcCurrentLinkText" style="font-size:11px;color:#374151;word-break:break-all"></div>
+                <div id="calcCurrentLinkNote" style="font-size:11px;color:#6B7280;margin-top:2px"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2155,7 +2201,7 @@ async function loadUnreadCount() {
 }
 
 function adminTab(tab, btn) {
-  ['feedbacks','users','notice','apikeys','stats'].forEach(t => {
+  ['feedbacks','users','notice','apikeys','calc','stats'].forEach(t => {
     const el = document.getElementById('admin' + t.charAt(0).toUpperCase() + t.slice(1));
     if (el) el.style.display = t===tab ? '' : 'none';
   });
@@ -2165,7 +2211,83 @@ function adminTab(tab, btn) {
   if(tab==='users')     loadAdminUsers();
   if(tab==='notice')    loadAdminNotice();
   if(tab==='apikeys')   loadApiKeys();
+  if(tab==='calc')      { loadCalcSubmissions(); loadCalcCurrentLink(); }
   if(tab==='stats')     loadAdminStats();
+}
+
+// ── Calc Submissions (Admin Web) ──────────────────────────────────
+async function loadCalcSubmissions() {
+  const el = document.getElementById('calcSubList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('SystemData/CalcSubmissions').catch(()=>null);
+    if (!raw) { el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:12px">Chưa có yêu cầu nào</div>'; return; }
+    const items = Object.entries(raw).sort(([,a],[,b])=>(b.Time||'').localeCompare(a.Time||''));
+    el.innerHTML = items.map(([key, d]) => `
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:700;color:#1E3A8A">👤 ${escHtml(d.User||'?')}</span>
+          <span style="font-size:10px;color:var(--muted)">${escHtml(d.Time||'')}</span>
+        </div>
+        <div style="font-size:12px;color:#374151">📄 ${escHtml(d.FileName||'?')} <span style="color:#9CA3AF">(${d.SizeKB||'?'}KB)</span></div>
+        ${d.Note ? `<div style="font-size:11px;color:#6B7280;margin-top:2px">💬 ${escHtml(d.Note)}</div>` : ''}
+        <div style="margin-top:6px">
+          <span style="font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;
+            background:${d.Status==='Da xu ly'?'#D1FAE5':'#FEF3C7'};
+            color:${d.Status==='Da xu ly'?'#065F46':'#92400E'}">
+            ${d.Status==='Da xu ly'?'✅ Đã xử lý':'⏳ Chờ xử lý'}
+          </span>
+          ${d.Status!=='Da xu ly' ? `<button onclick="markCalcDone('${key}')"
+            style="margin-left:6px;height:22px;padding:0 8px;background:#059669;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer">
+            ✓ Xử lý xong
+          </button>` : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) { if(el) el.innerHTML=`<div style="color:#EF4444;font-size:12px;padding:10px">Lỗi: ${e.message}</div>`; }
+}
+
+async function markCalcDone(key) {
+  try {
+    await fetch(`${FB_URL}/SystemData/CalcSubmissions/${key}/Status.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:'"Da xu ly"'
+    });
+    showToast('✅ Đã đánh dấu xử lý xong!','#059669');
+    loadCalcSubmissions();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+async function loadCalcCurrentLink() {
+  try {
+    const raw = await fbGet('SystemData/CalcDriveLink').catch(()=>null);
+    const el = document.getElementById('calcCurrentLink');
+    if (!raw || !raw.Link) { if(el) el.style.display='none'; return; }
+    if (el) el.style.display='';
+    const lt = document.getElementById('calcCurrentLinkText');
+    const ln = document.getElementById('calcCurrentLinkNote');
+    if (lt) lt.textContent = raw.Link;
+    if (ln) ln.textContent = (raw.Note||'') + (raw.UpdatedAt ? ' · ' + raw.UpdatedAt : '');
+    // Pre-fill inputs
+    const li = document.getElementById('adminCalcLink');
+    const ni = document.getElementById('adminCalcNote');
+    if (li) li.value = raw.Link || '';
+    if (ni) ni.value = raw.Note || '';
+  } catch(e) {}
+}
+
+async function adminSaveCalcDriveLink() {
+  const link = document.getElementById('adminCalcLink')?.value.trim() || '';
+  const note = document.getElementById('adminCalcNote')?.value.trim() || '';
+  if (!link.startsWith('http')) { showToast('❌ Link phải bắt đầu bằng https://...','#EF4444'); return; }
+  try {
+    const data = { Link: link, Note: note, UpdatedAt: new Date().toLocaleString('vi-VN'), UpdatedBy: currentUser.username };
+    const r = await fetch(`${FB_URL}/SystemData/CalcDriveLink.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(r.status);
+    showToast('✅ Đã lưu link Drive!','#059669');
+    loadCalcCurrentLink();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
 }
 
 // ── API Keys management ───────────────────────────────────────────
