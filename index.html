@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#0F172A"/>
 <meta name="description" content="S-RETC Toolkit Web Companion — Hỗ trợ kỹ sư cầu đường"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="S-RETC"/>
+<link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>"/>
 <title>S-RETC Toolkit — Web</title>
 <style>
@@ -313,6 +318,7 @@ body.dark .lib-item:hover{border-color:#60A5FA}
       <button onclick="showPage('estimate')" id="navEstimate">💰 Dự toán</button>
       <button onclick="showPage('profile')" id="navProfile">👤 Hồ sơ</button>
       <button onclick="showPage('feedback')" id="navFeedback">💬 Góp ý</button>
+      <button onclick="showPage('report')" id="navReport">📋 Báo cáo</button>
       <button onclick="showPage('admin')" id="navAdmin" style="display:none">🛡️ Admin <span id="fbBadge" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>    </div>
     <div class="topbar-right">
       <div class="user-chip">
@@ -796,6 +802,54 @@ Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đ�
       </div>
     </div>
 
+    <!-- BÁO CÁO TỔNG HỢP -->
+    <div id="pageReport" class="page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="page-title" style="margin-bottom:0">📋 Báo cáo Tổng hợp Dự án</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="loadReport()" style="height:32px;padding:0 12px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄 Làm mới</button>
+          <button onclick="printReport()" style="height:32px;padding:0 14px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ In / Xuất PDF</button>
+        </div>
+      </div>
+
+      <div id="reportContent">
+        <!-- Report stats header -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px" id="reportStats">
+          <div class="loading"><span class="spinner"></span>Đang tải...</div>
+        </div>
+
+        <!-- Projects table -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;font-weight:700;color:var(--blue)">📁 Danh sách dự án</div>
+            <div style="font-size:11px;color:var(--muted)" id="reportProjCount">--</div>
+          </div>
+          <div style="overflow-x:auto">
+            <table id="reportTable" style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead>
+                <tr style="background:#F8FAFC">
+                  <th style="padding:10px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid var(--border);white-space:nowrap">STT</th>
+                  <th style="padding:10px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid var(--border)">Tên dự án</th>
+                  <th style="padding:10px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid var(--border)">Nhóm trưởng</th>
+                  <th style="padding:10px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid var(--border)">Deadline</th>
+                  <th style="padding:10px 12px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid var(--border)">Tiến độ</th>
+                  <th style="padding:10px 12px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid var(--border)">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody id="reportTableBody">
+                <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Report footer info -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font-size:11px;color:var(--muted);box-shadow:var(--shadow)">
+          <span id="reportFooter">Báo cáo được tạo lúc --:--  |  S-RETC Web Companion v2.1</span>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main-content -->
 </div><!-- /app -->
 
@@ -908,16 +962,17 @@ function showToast(msg, color) {
 }
 
 // ── Navigation ─────────────────────────────────────────────────────
-const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate', profile:'pageProfile', feedback:'pageFeedback', admin:'pageAdmin'};
-const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate', profile:'navProfile', feedback:'navFeedback', admin:'navAdmin'};
+const PAGES = {dash:'pageDash',projects:'pageProjects',chat:'pageChat',library:'pageLibrary',coords:'pageCoords',estimate:'pageEstimate', profile:'pageProfile', feedback:'pageFeedback', admin:'pageAdmin', report:'pageReport'};
+const NAVS  = {dash:'navDash', projects:'navProjects',chat:'navChat', library:'navLib',   coords:'navCoords', estimate:'navEstimate', profile:'navProfile', feedback:'navFeedback', admin:'navAdmin', report:'navReport'};
 
 function showPage(name) {
   Object.entries(PAGES).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
-  Object.entries(NAVS).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('active',k===name); });
+  Object.entries(NAVS).forEach(([k,id])=>{ const el=document.getElementById(id); if(el) el.classList.toggle('active',k===name); });
   if (name==='projects') loadProjects();
   if (name==='estimate') loadEstimate();
-  if (name==='profile') loadProfile();
-  if (name==='admin') { loadAdminFeedbacks(); }
+  if (name==='profile')  loadProfile();
+  if (name==='admin')    { loadAdminFeedbacks(); }
+  if (name==='report')   loadReport();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -966,6 +1021,105 @@ async function loadDashboard() {
     // Recent projects (max 6)
     renderProjects(projects.slice(0, 6), 'dashProjects');
   } catch(e) { console.error(e); }
+}
+
+// ── Báo cáo tổng hợp ──────────────────────────────────────────────
+async function loadReport() {
+  try {
+    const raw = await fbGet('Projects/' + currentUser.username).catch(()=>null);
+    const projects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
+
+    const total    = projects.length;
+    const active   = projects.filter(p=>p.Status==='InProgress').length;
+    const done     = projects.filter(p=>p.Status==='Completed').length;
+    const late     = projects.filter(p=>isLate(p.Deadline)).length;
+    const avgPct   = total > 0 ? Math.round(projects.reduce((s,p)=>s+pct(p.WorkDone),0)/total) : 0;
+
+    // Stats cards
+    const statsEl = document.getElementById('reportStats');
+    if (statsEl) statsEl.innerHTML = [
+      ['📁','Tổng dự án', total, '#1E3A8A'],
+      ['⏳','Đang TK',    active,'#3B82F6'],
+      ['✅','Hoàn thành', done,  '#10B981'],
+      ['⚠️','Sắp hạn',   late,  '#F59E0B'],
+      ['📊','TB tiến độ', avgPct+'%','#7C3AED'],
+    ].map(([icon,lbl,val,color])=>`
+      <div class="stat-card">
+        <span class="stat-icon">${icon}</span>
+        <div>
+          <div class="stat-val" style="color:${color}">${val}</div>
+          <div class="stat-label">${lbl}</div>
+        </div>
+      </div>`).join('');
+
+    // Projects count
+    const cntEl = document.getElementById('reportProjCount');
+    if (cntEl) cntEl.textContent = total + ' dự án';
+
+    // Table body
+    const tbody = document.getElementById('reportTableBody');
+    if (tbody) {
+      if (!projects.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Chưa có dự án nào</td></tr>';
+      } else {
+        tbody.innerHTML = projects.map((p,i) => {
+          const p2      = pct(p.WorkDone);
+          const isLateP = isLate(p.Deadline);
+          const statusText = p.Status==='Completed' ? '✅ Hoàn thành'
+            : isLateP ? '⚠️ Sắp hạn' : '⏳ Đang TK';
+          const statusColor = p.Status==='Completed' ? '#065F46'
+            : isLateP ? '#92400E' : '#1E40AF';
+          const statusBg    = p.Status==='Completed' ? '#D1FAE5'
+            : isLateP ? '#FEF3C7' : '#DBEAFE';
+          const barColor = p2<40?'#EF4444':p2<80?'#F59E0B':'#10B981';
+          const dl = p.Deadline ? new Date(p.Deadline).toLocaleDateString('vi-VN') : '—';
+          return `<tr style="border-bottom:1px solid var(--border);${i%2===1?'background:#F9FAFB':''}">
+            <td style="padding:10px 12px;color:var(--muted);font-weight:600">${i+1}</td>
+            <td style="padding:10px 12px;font-weight:600;color:var(--text)">${escHtml(p.Name||'—')}</td>
+            <td style="padding:10px 12px;color:var(--muted)">${escHtml(p.Leader||'—')}</td>
+            <td style="padding:10px 12px;color:var(--muted)">${dl}</td>
+            <td style="padding:10px 12px;text-align:center">
+              <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+                <div style="width:60px;height:8px;background:#F1F5F9;border-radius:4px;overflow:hidden">
+                  <div style="width:${p2}%;height:100%;background:${barColor};border-radius:4px"></div>
+                </div>
+                <span style="font-weight:700;color:${barColor};font-size:11px">${p2}%</span>
+              </div>
+            </td>
+            <td style="padding:10px 12px;text-align:center">
+              <span style="background:${statusBg};color:${statusColor};padding:2px 8px;
+                border-radius:12px;font-size:11px;font-weight:700">${statusText}</span>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    // Footer
+    const foot = document.getElementById('reportFooter');
+    if (foot) foot.textContent =
+      `Báo cáo của ${currentUser.fullName || currentUser.username}  |  ` +
+      `${new Date().toLocaleString('vi-VN')}  |  S-RETC Web Companion v2.1`;
+
+  } catch(e) { console.error('loadReport:', e); }
+}
+
+function printReport() {
+  // Print style for clean PDF output
+  const style = document.createElement('style');
+  style.id = 'printStyle';
+  style.textContent = `
+    @media print {
+      body * { visibility: hidden !important; }
+      #pageReport, #pageReport * { visibility: visible !important; }
+      #pageReport { position: fixed; top:0; left:0; width:100%; padding:20px; }
+      .topbar, nav, .sidebar { display: none !important; }
+      button { display: none !important; }
+      @page { margin: 15mm; }
+    }`;
+  document.head.appendChild(style);
+  window.print();
+  setTimeout(()=>{ const s=document.getElementById('printStyle'); if(s) s.remove(); }, 1000);
 }
 
 function renderDonutChart(active, done, late, total) {
@@ -1967,6 +2121,57 @@ function updateAdminNav() {
   if (adminBtn && currentUser?.role === 'Admin') adminBtn.style.display = '';
 }
 if (saved) { currentUser=JSON.parse(saved); showApp(); document.getElementById('authScreen').style.display='none'; }
+</script>
+
+<!-- PWA: Service Worker + Install Banner -->
+<div id="pwaInstallBanner" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  background:#1E3A8A;color:#fff;border-radius:12px;padding:12px 20px;z-index:9999;
+  display:none;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.3);
+  max-width:380px;width:calc(100% - 32px)">
+  <span style="font-size:22px">🚀</span>
+  <div style="flex:1">
+    <div style="font-weight:700;font-size:13px">Cài S-RETC về máy</div>
+    <div style="font-size:11px;opacity:.8">Dùng offline, nhanh hơn trên mobile</div>
+  </div>
+  <button id="pwaInstallBtn" style="background:#3B82F6;color:#fff;border:none;border-radius:8px;
+    padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer">Cài</button>
+  <button onclick="document.getElementById('pwaInstallBanner').style.display='none'"
+    style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;
+    padding:4px 8px;font-size:13px;cursor:pointer">✕</button>
+</div>
+
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+
+// PWA Install prompt
+let _deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.style.display = 'flex';
+});
+const installBtn = document.getElementById('pwaInstallBtn');
+if (installBtn) installBtn.addEventListener('click', async () => {
+  if (!_deferredPrompt) return;
+  _deferredPrompt.prompt();
+  const { outcome } = await _deferredPrompt.userChoice;
+  console.log('PWA install outcome:', outcome);
+  _deferredPrompt = null;
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  console.log('S-RETC PWA installed');
+  _deferredPrompt = null;
+});
 </script>
 </body>
 </html>
