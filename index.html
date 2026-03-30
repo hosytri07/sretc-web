@@ -761,30 +761,60 @@ Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đ�
     <!-- FEEDBACK -->
     <div id="pageFeedback" class="page">
       <div class="page-title">💬 Góp ý &amp; Báo lỗi</div>
-      <div style="max-width:560px">
-        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Phân loại</div>
-            <select id="fbType" style="width:100%;height:38px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 12px;font-size:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px">
+
+        <!-- Form gửi -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <div style="font-size:14px;font-weight:700;color:#1E3A8A;margin-bottom:14px">✍️ Gửi phản hồi mới</div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:5px">Phân loại</div>
+            <select id="fbType" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 10px;font-size:13px">
               <option>⚠️ Báo lỗi phần mềm</option>
               <option>💡 Góp ý tính năng mới</option>
               <option>🌐 Góp ý Web Companion</option>
+              <option>⭐ Đánh giá tính năng</option>
               <option>💬 Khác...</option>
             </select>
           </div>
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:6px">Nội dung chi tiết *</div>
-            <textarea id="fbContent" rows="5" placeholder="Mô tả chi tiết vấn đề hoặc góp ý..."
-                      style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;
-                             font-size:14px;resize:vertical;font-family:inherit"></textarea>
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:5px">Mức độ ưu tiên</div>
+            <div style="display:flex;gap:6px">
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                <input type="radio" name="fbPriority" value="Thấp" checked/> 🟢 Thấp
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                <input type="radio" name="fbPriority" value="Trung bình"/> 🟡 Vừa
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                <input type="radio" name="fbPriority" value="Cao"/> 🔴 Cao
+              </label>
+            </div>
           </div>
-          <div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:16px">
-            ℹ️ Thông tin tài khoản và tên máy tính sẽ được gửi kèm để Admin hỗ trợ tốt hơn.
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:5px">Nội dung chi tiết *</div>
+            <textarea id="fbContent" rows="5" placeholder="Mô tả chi tiết vấn đề hoặc góp ý..."
+              style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;
+                     font-size:13px;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:11px;color:#1E40AF;margin-bottom:14px">
+            ℹ️ Thông tin tài khoản sẽ được gửi kèm để Admin hỗ trợ tốt hơn.
           </div>
           <button onclick="sendFeedback()"
-                  style="width:100%;height:42px;background:#D97706;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">
+            style="width:100%;height:40px;background:#D97706;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">
             🚀 Gửi phản hồi
           </button>
+        </div>
+
+        <!-- Lịch sử phản hồi của user -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div style="font-size:14px;font-weight:700;color:#1E3A8A">📋 Phản hồi của tôi</div>
+            <button onclick="loadMyFeedbacks()"
+              style="height:28px;padding:0 10px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:6px;font-size:11px;cursor:pointer">🔄</button>
+          </div>
+          <div id="myFeedbackList" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto">
+            <div class="loading"><span class="spinner"></span>Đang tải...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1029,6 +1059,7 @@ function showPage(name) {
   if (name==='profile')  loadProfile();
   if (name==='admin')    { loadAdminFeedbacks(); }
   if (name==='report')   loadReport();
+  if (name==='feedback') loadMyFeedbacks();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -1823,19 +1854,21 @@ async function saveProfile() {
 
 // ── Feedback ───────────────────────────────────────────────────────
 async function sendFeedback() {
-  const type    = document.getElementById('fbType')?.value || '';
-  const content = document.getElementById('fbContent')?.value.trim() || '';
+  const type     = document.getElementById('fbType')?.value || '';
+  const content  = document.getElementById('fbContent')?.value.trim() || '';
+  const priority = document.querySelector('input[name="fbPriority"]:checked')?.value || 'Thấp';
   if (!content) { showToast('❌ Nhập nội dung phản hồi!', '#EF4444'); return; }
 
   const fbData = {
     Type:      type,
+    Priority:  priority,
     Content:   content,
     User:      currentUser.username,
-    FullName:  currentUser.fullName,
-    Machine:   'Web Browser',
-    Timestamp: new Date().toISOString().replace('T',' ').substring(0,19),
+    FullName:  currentUser.fullName || currentUser.username,
+    Machine:   navigator.userAgent.substring(0, 60),
+    Timestamp: new Date().toLocaleString('vi-VN'),
     Status:    'Chua xu ly',
-    Source:    'Web Companion'
+    Source:    'Web Companion v2.1'
   };
 
   try {
@@ -1843,10 +1876,48 @@ async function sendFeedback() {
     const r = await fetch(`${FB_URL}/Feedbacks/${id}.json`, {
       method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fbData)
     });
-    if (!r.ok) throw new Error('Firebase write failed ' + r.status);
+    if (!r.ok) throw new Error('Firebase ' + r.status);
     document.getElementById('fbContent').value = '';
-    showToast('✅ Cảm ơn! Phản hồi đã được gửi tới Admin.', '#059669');
-  } catch(e) { showToast('❌ Lỗi gửi: ' + e.message + ' — kiểm tra Firebase Rules', '#EF4444'); }
+    showToast('✅ Cảm ơn! Phản hồi đã gửi tới Admin.', '#059669');
+    loadMyFeedbacks();
+    loadUnreadCount();
+  } catch(e) { showToast('❌ Lỗi: ' + e.message, '#EF4444'); }
+}
+
+async function loadMyFeedbacks() {
+  const el = document.getElementById('myFeedbackList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  try {
+    const raw = await fbGet('Feedbacks').catch(()=>null);
+    if (!raw) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px">Chưa có phản hồi nào</div>'; return; }
+
+    const mine = Object.entries(raw)
+      .filter(([,v]) => v.User === currentUser.username)
+      .sort(([,a],[,b]) => (b.Timestamp||'').localeCompare(a.Timestamp||''));
+
+    if (!mine.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px">Chưa có phản hồi nào</div>';
+      return;
+    }
+
+    el.innerHTML = mine.map(([id, fb]) => {
+      const statusColor = fb.Status === 'Da xu ly' ? '#059669' : '#D97706';
+      const statusText  = fb.Status === 'Da xu ly' ? '✅ Đã xử lý' : '⏳ Chờ xử lý';
+      const prioColor   = fb.Priority==='Cao' ? '#EF4444' : fb.Priority==='Trung bình' ? '#F59E0B' : '#10B981';
+      return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:700;color:#374151">${escHtml(fb.Type||'—')}</span>
+          <span style="font-size:10px;font-weight:700;color:${statusColor}">${statusText}</span>
+        </div>
+        <div style="font-size:12px;color:#374151;margin-bottom:4px">${escHtml((fb.Content||'').substring(0,80))}${(fb.Content||'').length>80?'...':''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;color:var(--muted)">${fb.Timestamp||''}</span>
+          ${fb.Priority ? `<span style="font-size:10px;font-weight:600;color:${prioColor}">${fb.Priority}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="font-size:12px;color:#EF4444;padding:10px">Lỗi tải</div>'; }
 }
 
 function toggleDark() {
