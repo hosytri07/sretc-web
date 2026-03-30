@@ -231,6 +231,10 @@ body.dark .field input{background:#0F172A;color:#E2E8F0;border-color:#334155}
 body.dark .proj-card,.dark .coord-panel,.dark .chat-container{background:#1E293B;border-color:#334155}
 body.dark .lib-item{background:#1E293B;border-color:#334155}
 body.dark .lib-item:hover{border-color:#60A5FA}
+body.dark textarea,body.dark input[type="text"],body.dark input[type="number"],body.dark input[type="date"],body.dark select{background:#1E293B;color:#E2E8F0;border-color:#334155}
+body.dark .msg-bot{background:#1E293B;border-color:#334155;color:#E2E8F0}
+body.dark .chart-card,.dark .activity-feed,.dark .stat-card{background:#1E293B;border-color:#334155}
+body.dark #editProjModal > div{background:#1E293B}
 </style>
 </head>
 <body>
@@ -559,6 +563,11 @@ body.dark .lib-item:hover{border-color:#60A5FA}
             style="height:30px;padding:0 10px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
             🗑 Xoá
           </button>
+          <button onclick="exportChat()"
+            style="height:30px;padding:0 10px;background:#F0FDF4;color:#065F46;border:1px solid #A7F3D0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer"
+            title="Xuất cuộc trò chuyện ra file .txt">
+            💾 Xuất
+          </button>
         </div>
       </div>
 
@@ -699,14 +708,19 @@ Bạn có thể hỏi về TCVN, tính toán kết cấu, dự toán, hoặc đ�
 
     <!-- ESTIMATE (View only) -->
     <div id="pageEstimate" class="page">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="page-title" style="margin-bottom:0">💰 Xem Dự toán</div>
-        <button onclick="loadEstimate()" style="height:32px;padding:0 12px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄 Làm mới</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="estSearch" type="text" placeholder="🔍 Tìm dự toán..." oninput="filterEstimates()"
+            style="height:32px;width:180px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 10px;font-size:12px"/>
+          <button onclick="loadEstimate()" style="height:32px;padding:0 12px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄</button>
+        </div>
       </div>
-      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:#1E40AF;">
-        ℹ️ Trang web chỉ xem dự toán đã lưu. Để tạo/sửa dự toán, dùng <strong>S-RETC Desktop</strong>.
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1E40AF;">
+        ℹ️ Trang web chỉ xem dự toán đã lưu từ Desktop. Để tạo/sửa, dùng <strong>S-RETC Desktop App</strong>.
       </div>
-      <div id="estimateList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;letter-spacing:.4px" id="estCountLabel"></div>
+      <div id="estimateList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
         <div class="loading"><span class="spinner"></span>Đang tải...</div>
       </div>
     </div>
@@ -1427,32 +1441,57 @@ function addMsg(text, who, isTyping=false) {
   const div = document.getElementById('chatMessages');
   const id = 'msg_' + Date.now() + Math.random().toString(36).slice(2,5);
   const t = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const copyBtn = who==='bot' && !isTyping
+    ? `<button onclick="copyMsgText(this)" title="Copy tin nhắn"
+        style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.06);border:none;
+          border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;opacity:0"
+        class="msg-copy-btn">📋</button>` : '';
   div.insertAdjacentHTML('beforeend',
-    `<div id="${id}" class="msg msg-${who}${isTyping?' msg-typing':''}">
-      ${isTyping ? escHtml(text) : escHtml(text) + `<div style="font-size:9px;opacity:.5;margin-top:4px;text-align:${who==='user'?'right':'left'}">${t}</div>`}
+    `<div id="${id}" class="msg msg-${who}${isTyping?' msg-typing':''}"
+        style="position:relative" onmouseenter="showCopyBtn(this)" onmouseleave="hideCopyBtn(this)">
+      ${copyBtn}
+      ${isTyping ? escHtml(text) : escHtml(text) + \`<div style="font-size:9px;opacity:.5;margin-top:4px;text-align:\${who==='user'?'right':'left'}">\${t}</div>\`}
     </div>`);
   div.scrollTop = div.scrollHeight;
   return id;
 }
+
+function showCopyBtn(el) { const b = el.querySelector('.msg-copy-btn'); if(b) b.style.opacity='1'; }
+function hideCopyBtn(el) { const b = el.querySelector('.msg-copy-btn'); if(b) b.style.opacity='0'; }
+function copyMsgText(btn) {
+  const msg = btn.closest('.msg');
+  const text = msg ? (msg.innerText || msg.textContent).replace(/^📋.*$/m,'').trim() : '';
+  navigator.clipboard.writeText(text).then(()=>showToast('✅ Đã copy!','#059669'));
+}
+
 function updateMsg(id, text) {
   const el = document.getElementById(id);
   if (el) { el.textContent = text; el.classList.remove('msg-typing'); }
   document.getElementById('chatMessages').scrollTop = 999999;
 }
+
 function updateMsgMarkdown(id, md) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('msg-typing');
   const t = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const copyBtn = `<button onclick="copyMsgText(this)" title="Copy"
+    style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.06);border:none;
+      border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;opacity:0"
+    class="msg-copy-btn">📋</button>`;
   let html = escHtml(md)
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/`([^`]+)`/g,'<code style="background:#F1F5F9;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
     .replace(/^#{1,3}\s(.+)$/gm,'<div style="font-weight:700;color:#1E3A8A;margin:6px 0 2px">$1</div>')
     .replace(/^[-•]\s(.+)$/gm,'<div style="padding-left:10px">• $1</div>')
     .replace(/\n/g,'<br>');
-  el.innerHTML = html + `<div style="font-size:9px;opacity:.5;margin-top:6px">${t}</div>`;
+  el.style.position = 'relative';
+  el.setAttribute('onmouseenter','showCopyBtn(this)');
+  el.setAttribute('onmouseleave','hideCopyBtn(this)');
+  el.innerHTML = copyBtn + html + `<div style="font-size:9px;opacity:.5;margin-top:6px">${t}</div>`;
   document.getElementById('chatMessages').scrollTop = 999999;
 }
+
 function clearChat() {
   chatHistory = [];
   const el = document.getElementById('chatMessages');
@@ -1461,9 +1500,34 @@ function clearChat() {
   showToast('🗑 Đã xoá chat', '#64748B');
 }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function exportChat() {
+  if (!chatHistory.length) { showToast('Chưa có tin nhắn để xuất!','#F59E0B'); return; }
+  const lines = chatHistory.map(m =>
+    `[${m.role==='user'?'Bạn':'S-RETC AI'}]
+${m.content}
+`).join('
+---
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+');
+  const blob = new Blob([
+    `S-RETC Chatbot Export
+Ngày: ${new Date().toLocaleString('vi-VN')}
+
+${'='.repeat(50)}
+
+` + lines
+  ], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'chat_sretc_' + Date.now() + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ Đã xuất cuộc trò chuyện!','#059669');
+}
+
+// escHtml — single definition, no <br> by default (markdown handles newlines)
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 
 // ── Library ────────────────────────────────────────────────────────
 async function loadLib(cat, btn) {
@@ -1474,19 +1538,46 @@ async function loadLib(cat, btn) {
   const el = document.getElementById('libItems');
   el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
   try {
-    const data = await fbGet('Library/' + cat);
-    if (!data) { el.innerHTML='<div class="loading">Chưa có tài liệu</div>'; return; }
-    const items = Object.values(data);
-    el.innerHTML = items.map(item=>`
-      <div class="lib-item" onclick="openLink('${item.DriveLink||'#'}')">
-        <span class="icon">${catIcon(cat)}</span>
-        <div class="info">
-          <div class="name">${item.Name||'—'}</div>
-          <div class="date">📅 ${item.UpdateDate||''}</div>
+    const data = await fbGet('Library/' + cat).catch(()=>null);
+    if (!data) { el.innerHTML='<div class="loading">Chưa có tài liệu nào. Admin thêm qua Firebase Console.</div>'; return; }
+    const items = Object.entries(data).map(([id,v])=>({id,...v}));
+
+    el.innerHTML = items.map(item => {
+      const icon   = catIcon(cat);
+      const link   = item.DriveLink || item.Link || '#';
+      const desc   = item.Description || item.MoTa || '';
+      const date   = item.UpdateDate || item.NgayCapNhat || '';
+      const size   = item.Size || item.KichThuoc || '';
+      const author = item.Author || item.TacGia || '';
+      const hasLink = link && link !== '#';
+      return `<div class="lib-item" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;cursor:${hasLink?'pointer':'default'}" 
+        ${hasLink ? `onclick="openLink('${link.replace(/'/g,'%27')}')"` : ''}>
+        <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+          <span class="icon" style="margin-top:2px">${icon}</span>
+          <div class="info" style="flex:1;min-width:0">
+            <div class="name" style="word-break:break-word">${escHtml(item.Name||'—')}</div>
+            ${desc ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4">${escHtml(desc.substring(0,100))}${desc.length>100?'...':''}</div>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px">
+              ${date   ? `<span style="font-size:10px;color:var(--muted)">📅 ${escHtml(date)}</span>` : ''}
+              ${size   ? `<span style="font-size:10px;color:var(--muted)">📦 ${escHtml(size)}</span>` : ''}
+              ${author ? `<span style="font-size:10px;color:var(--muted)">👤 ${escHtml(author)}</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+            ${hasLink ? `
+              <button onclick="openLink('${link.replace(/'/g,'%27')}')" title="Mở tài liệu"
+                style="height:26px;padding:0 8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">
+                🔗 Mở
+              </button>
+              <button onclick="copyToClipboard('${link.replace(/'/g,'%27')}')" title="Copy link"
+                style="height:26px;padding:0 8px;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;border-radius:5px;font-size:11px;cursor:pointer">
+                📋
+              </button>` : '<span style="font-size:11px;color:#9CA3AF">Chưa có link</span>'}
+          </div>
         </div>
-        <span class="arrow">→</span>
-      </div>`).join('');
-  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải thư viện — kiểm tra Firebase Rules</div>'; }
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML=`<div class="loading">Lỗi tải thư viện: ${e.message}</div>`; }
 }
 
 function openGoogleMaps() {
@@ -1508,15 +1599,23 @@ function copyCoord(elId) {
 function filterLib() {
   const q = document.getElementById('libSearch')?.value.toLowerCase() || '';
   document.querySelectorAll('#libItems .lib-item').forEach(el => {
-    const name = el.querySelector('.name')?.textContent.toLowerCase() || '';
-    el.style.display = name.includes(q) ? '' : 'none';
+    const text = el.textContent.toLowerCase();
+    el.style.display = !q || text.includes(q) ? '' : 'none';
   });
 }
 
 function catIcon(cat) {
   return {TCVN:'📋',Software:'💿',Video:'🎬',LISP:'📜'}[cat]||'📄';
 }
-function openLink(url) { if(url&&url!=='#') window.open(url,'_blank'); }
+function openLink(url) {
+  if (url && url !== '#') window.open(decodeURIComponent(url), '_blank');
+}
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(decodeURIComponent(text))
+    .then(()=>showToast('✅ Đã copy link!','#059669'))
+    .catch(()=>showToast('❌ Không copy được','#EF4444'));
+}
+
 
 // ── Estimate detail toggle ────────────────────────────────────────
 async function toggleEstDetail(detailId) {
@@ -1755,30 +1854,64 @@ async function saveEditProject() {
 }
 
 // ── Estimate (view only) ─────────────────────────────────────────
+let _allEstimates = [];
 async function loadEstimate() {
   const el = document.getElementById('estimateList');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  if (el) el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
   try {
     const raw = await fbGet('Estimates/' + currentUser.username).catch(()=>null);
-    if (!raw) { el.innerHTML='<div class="loading">Chưa có dự toán nào được lưu từ Desktop</div>'; return; }
-    const items = Object.entries(raw).map(([id,v])=>({id,...(v.meta||v)}));
-    el.innerHTML = items.map(p=>`
-      <div class="proj-card" style="border-left:4px solid #1E3A8A;cursor:pointer"
-           onclick="toggleEstDetail('est_${p.id}')">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div class="proj-name">💰 ${p.TenCongTrinh||p.TenDuAn||'Dự toán'}</div>
-          <span style="font-size:12px;color:#64748B">▾</span>
+    if (!raw) {
+      _allEstimates = [];
+      if (el) el.innerHTML='<div class="loading" style="grid-column:1/-1">Chưa có dự toán nào được lưu từ Desktop.<br><span style="font-size:12px;color:#9CA3AF">Tạo dự toán trong S-RETC Desktop → Lưu lên Cloud</span></div>';
+      const lbl = document.getElementById('estCountLabel');
+      if (lbl) lbl.textContent = '';
+      return;
+    }
+    _allEstimates = Object.entries(raw).map(([id,v])=>({id,...(v.meta||v)}));
+    const lbl = document.getElementById('estCountLabel');
+    if (lbl) lbl.textContent = `${_allEstimates.length} DỰ TOÁN`;
+    filterEstimates();
+  } catch(e) { if(el) el.innerHTML='<div class="loading">Lỗi tải dự toán: '+e.message+'</div>'; }
+}
+
+function filterEstimates() {
+  const q = (document.getElementById('estSearch')?.value || '').toLowerCase();
+  const filtered = _allEstimates.filter(p =>
+    !q ||
+    (p.TenCongTrinh||'').toLowerCase().includes(q) ||
+    (p.TenDuAn||'').toLowerCase().includes(q) ||
+    (p.Tinh||'').toLowerCase().includes(q)
+  );
+  const lbl = document.getElementById('estCountLabel');
+  if (lbl) lbl.textContent = q ? `${filtered.length}/${_allEstimates.length} DỰ TOÁN` : `${_allEstimates.length} DỰ TOÁN`;
+
+  const el = document.getElementById('estimateList');
+  if (!el) return;
+  if (!filtered.length) {
+    el.innerHTML = '<div class="loading" style="grid-column:1/-1">Không tìm thấy dự toán phù hợp</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(p => {
+    const tongTien = p.TongTien ? Number(p.TongTien).toLocaleString('vi-VN') + ' đ' : '—';
+    return `<div class="proj-card" style="border-left:4px solid #1E3A8A;cursor:pointer"
+         onclick="toggleEstDetail('est_${p.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div class="proj-name" style="flex:1">💰 ${escHtml(p.TenCongTrinh||p.TenDuAn||'Dự toán')}</div>
+        <span style="font-size:12px;color:#64748B;flex-shrink:0">▾</span>
+      </div>
+      <div class="proj-meta" style="margin-top:6px">
+        📍 ${escHtml(p.Tinh||'—')} &nbsp;·&nbsp; 📅 ${escHtml(p.NgayLuu||'—')} &nbsp;·&nbsp;
+        <strong>${p.SoCongTac||0}</strong> công tác
+        ${tongTien !== '—' ? `&nbsp;·&nbsp; <span style="color:#1E3A8A;font-weight:700">${tongTien}</span>` : ''}
+      </div>
+      <div id="est_${p.id}" style="display:none;margin-top:10px;border-top:1px solid #E2E8F0;padding-top:8px">
+        <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:6px">CHI TIẾT CÔNG TÁC:</div>
+        <div id="est_items_${p.id}" style="font-size:12px;color:#374151">
+          <div class="loading"><span class="spinner"></span>Đang tải...</div>
         </div>
-        <div class="proj-meta">📍 ${p.Tinh||'—'} &nbsp;|&nbsp; 📅 ${p.NgayLuu||'—'} &nbsp;|&nbsp;
-          <strong>${p.SoCongTac||0}</strong> công tác</div>
-        <div id="est_${p.id}" style="display:none;margin-top:10px;border-top:1px solid #E2E8F0;padding-top:8px">
-          <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:6px">CHI TIẾT CÔNG TÁC:</div>
-          <div id="est_items_${p.id}" style="font-size:12px;color:#374151">
-            <div class="loading"><span class="spinner"></span>Đang tải...</div>
-          </div>
-        </div>
-      </div>`).join('');
-  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dự toán: '+e.message+'</div>'; }
+      </div>
+    </div>`;
+  }).join('');
 }
 
 
