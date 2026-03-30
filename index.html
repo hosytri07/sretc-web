@@ -447,11 +447,24 @@ body.dark .lib-item:hover{border-color:#60A5FA}
     <div id="pageProjects" class="page">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="page-title" style="margin-bottom:0">📁 Quản lý Dự án</div>
-        <button onclick="loadProjects()" style="height:32px;padding:0 12px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄 Làm mới</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <!-- Search & Filter -->
+          <input id="projSearch" type="text" placeholder="🔍 Tìm dự án..."
+            oninput="filterProjects()"
+            style="height:32px;width:160px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 10px;font-size:12px"/>
+          <select id="projFilter" onchange="filterProjects()"
+            style="height:32px;border:1.5px solid #E2E8F0;border-radius:8px;padding:0 8px;font-size:12px;cursor:pointer">
+            <option value="all">Tất cả</option>
+            <option value="InProgress">Đang TK</option>
+            <option value="Completed">Hoàn thành</option>
+            <option value="late">Sắp hạn</option>
+          </select>
+          <button onclick="loadProjects()" style="height:32px;padding:0 12px;background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄</button>
+        </div>
       </div>
 
       <!-- Add project form -->
-      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:16px">
         <div style="font-size:13px;font-weight:700;color:#1E3A8A;margin-bottom:12px">➕ Thêm Dự án mới</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 120px auto;gap:10px;align-items:end">
           <div>
@@ -477,7 +490,50 @@ body.dark .lib-item:hover{border-color:#60A5FA}
         </div>
       </div>
 
+      <!-- Project count -->
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:600;letter-spacing:.4px">
+        <span id="projCountLabel">DỰ ÁN</span>
+      </div>
+
       <div id="projList" class="projects-grid"><div class="loading"><span class="spinner"></span>Đang tải...</div></div>
+
+      <!-- Edit Project Modal -->
+      <div id="editProjModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:24px;width:440px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+          <div style="font-size:15px;font-weight:800;color:#1E3A8A;margin-bottom:16px">✏️ Chỉnh sửa dự án</div>
+          <input type="hidden" id="editProjId"/>
+          <div style="display:grid;gap:12px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tên dự án *</div>
+              <input id="editProjName" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Nhóm trưởng</div>
+                <input id="editProjLeader" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Deadline</div>
+                <input id="editProjDeadline" type="date" style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Tiến độ (%)</div>
+              <input id="editProjPct" type="number" min="0" max="100"
+                style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:4px">Ghi chú / Công việc đang làm</div>
+              <input id="editProjNote" placeholder="VD: Đang thiết kế trụ T3..."
+                style="width:100%;height:36px;border:1.5px solid #E2E8F0;border-radius:7px;padding:0 10px;font-size:13px"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+            <button onclick="closeEditModal()" style="height:36px;padding:0 16px;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;border-radius:8px;font-weight:600;cursor:pointer">Hủy</button>
+            <button onclick="saveEditProject()" style="height:36px;padding:0 20px;background:#1E3A8A;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 Lưu thay đổi</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- CHATBOT -->
@@ -1230,6 +1286,9 @@ function renderProjects(projects, containerId) {
       <div style="display:flex;gap:6px;margin-top:10px">
         ${p.Status!=='Completed' ? `<button onclick="markDone('${p.id}')"
           style="flex:1;height:26px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✔ Hoàn thành</button>` : ''}
+        <button onclick="openEditProject('${p.id}','${escHtml(p.Name||'')}','${escHtml(p.Leader||'')}','${p.Deadline||''}','${p2}','${escHtml(p.WorkDone||'')}')"
+          style="height:26px;padding:0 10px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer"
+          title="Chỉnh sửa">✏️</button>
         <button onclick="deleteProject('${p.id}')"
           style="height:26px;padding:0 10px;background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer"
           title="Xóa dự án">🗑</button>
@@ -1240,12 +1299,15 @@ function renderProjects(projects, containerId) {
 
 async function loadProjects() {
   const el = document.getElementById('projList');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
+  if (el) el.innerHTML = '<div class="loading"><span class="spinner"></span>Đang tải...</div>';
   try {
-    const raw = await fbGet('Projects/' + currentUser.username);
-    const projects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
-    renderProjects(projects, 'projList');
-  } catch(e){ el.innerHTML='<div class="loading">Lỗi tải dữ liệu</div>'; }
+    const raw = await fbGet('Projects/' + currentUser.username).catch(()=>null);
+    _allProjects = raw ? Object.entries(raw).map(([id,v])=>({id,...v})) : [];
+    const lbl = document.getElementById('projCountLabel');
+    if (lbl) lbl.textContent = `${_allProjects.length} DỰ ÁN`;
+    // Apply current filter
+    filterProjects();
+  } catch(e) { if(el) el.innerHTML='<div class="loading">Lỗi tải dữ liệu</div>'; }
 }
 
 // ── Chatbot ────────────────────────────────────────────────────────
@@ -1595,6 +1657,68 @@ async function deleteProject(projId) {
   try {
     await fetch(`${FB_URL}/Projects/${currentUser.username}/${projId}.json`, { method:'DELETE' });
     showToast('🗑 Đã xóa dự án', '#64748B');
+    loadProjects(); loadDashboard();
+  } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
+}
+
+// ── Filter & Search projects ──────────────────────────────────────
+let _allProjects = [];
+function filterProjects() {
+  const q      = (document.getElementById('projSearch')?.value||'').toLowerCase();
+  const status = document.getElementById('projFilter')?.value || 'all';
+  let filtered = _allProjects.filter(p => {
+    const matchQ = !q || (p.Name||'').toLowerCase().includes(q) ||
+                        (p.Leader||'').toLowerCase().includes(q);
+    const matchS = status==='all'   ? true
+                 : status==='late'  ? isLate(p.Deadline)
+                 : p.Status === status;
+    return matchQ && matchS;
+  });
+  const lbl = document.getElementById('projCountLabel');
+  if (lbl) lbl.textContent = `${filtered.length}/${_allProjects.length} DỰ ÁN`;
+  renderProjects(filtered, 'projList');
+}
+
+// ── Edit Project Modal ────────────────────────────────────────────
+function openEditProject(id, name, leader, deadline, pctVal, workDone) {
+  document.getElementById('editProjId').value      = id;
+  document.getElementById('editProjName').value    = name;
+  document.getElementById('editProjLeader').value  = leader;
+  document.getElementById('editProjDeadline').value= deadline;
+  document.getElementById('editProjPct').value     = pctVal;
+  // WorkDone may have % suffix — strip for note display
+  const noteClean = workDone.replace(/^\d+%\s*/, '');
+  document.getElementById('editProjNote').value    = noteClean;
+  const modal = document.getElementById('editProjModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('editProjModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveEditProject() {
+  const id       = document.getElementById('editProjId').value;
+  const name     = document.getElementById('editProjName').value.trim();
+  const leader   = document.getElementById('editProjLeader').value.trim();
+  const deadline = document.getElementById('editProjDeadline').value;
+  const pctVal   = parseInt(document.getElementById('editProjPct').value)||0;
+  const note     = document.getElementById('editProjNote').value.trim();
+  if (!name) { showToast('❌ Tên dự án không được để trống!','#EF4444'); return; }
+
+  const workDone = pctVal + (note ? '% ' + note : '%');
+  const status   = pctVal >= 100 ? 'Completed' : 'InProgress';
+
+  try {
+    const url  = `${FB_URL}/Projects/${currentUser.username}/${id}.json`;
+    const data = { Name:name, Leader:leader, Deadline:deadline, WorkDone:workDone, Status:status };
+    const r = await fetch(url, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(r.status);
+    showToast('✅ Đã cập nhật dự án!','#059669');
+    closeEditModal();
     loadProjects(); loadDashboard();
   } catch(e) { showToast('❌ Lỗi: '+e.message,'#EF4444'); }
 }
