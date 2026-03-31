@@ -2616,47 +2616,69 @@ async function loadAdminUsers() {
     if (!raw) { el.innerHTML='<div class="loading">Không tải được</div>'; return; }
     const users = Object.entries(raw).map(([u,v])=>({username:u,...v}));
     el.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead>
           <tr style="background:#F8FAFC">
-            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Tài khoản</th>
-            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Họ tên</th>
-            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Vai trò</th>
-            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Trạng thái</th>
-            <th style="padding:10px 14px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Hành động</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Tài khoản</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Họ tên</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Role</th>
+            <th style="padding:8px 12px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Web</th>
+            <th style="padding:8px 12px;text-align:center;font-weight:700;color:#374151;border-bottom:1px solid #E2E8F0">Hành động</th>
           </tr>
         </thead>
         <tbody>
           ${users.map(u=>`
             <tr style="border-bottom:1px solid #F1F5F9">
-              <td style="padding:10px 14px;font-weight:600;color:#0F172A">${u.username}</td>
-              <td style="padding:10px 14px;color:#374151">${u.FullName||'—'}</td>
-              <td style="padding:10px 14px">
+              <td style="padding:8px 12px;font-weight:600;color:#0F172A">${escHtml(u.username)}</td>
+              <td style="padding:8px 12px;color:#374151">${escHtml(u.FullName||'—')}</td>
+              <td style="padding:8px 12px">
                 <span style="background:${u.Role==='Admin'?'#FEF3C7':'#EFF6FF'};
                              color:${u.Role==='Admin'?'#92400E':'#1E40AF'};
-                             padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">
+                             padding:2px 6px;border-radius:10px;font-size:10px;font-weight:600">
                   ${u.Role||'NguoiDung'}
                 </span>
               </td>
-              <td style="padding:10px 14px">
-                <span style="color:${u.IsApproved===false?'#DC2626':'#059669'};font-size:12px;font-weight:600">
-                  ${u.IsApproved===false?'⏳ Chờ duyệt':'✅ Đã duyệt'}
-                </span>
+              <td style="padding:8px 12px;text-align:center">
+                ${u.PasswordWeb
+                  ? '<span style="color:#059669;font-size:13px" title="Đã có mật khẩu web">✅</span>'
+                  : `<button onclick="adminActivateWeb('${u.username}')"
+                      style="height:22px;padding:0 6px;background:#7C3AED;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer"
+                      title="Đặt mật khẩu web cho user này — không cần Firebase Rules">
+                      🌐 Kích hoạt
+                    </button>`}
               </td>
-              <td style="padding:10px 14px;text-align:center">
+              <td style="padding:8px 12px;text-align:center">
                 ${u.IsApproved===false
-                  ? `<button onclick="approveUser('${u.username}')" style="height:26px;padding:0 8px;background:#10B981;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✓ Duyệt</button>`
+                  ? `<button onclick="approveUser('${u.username}')" style="height:24px;padding:0 7px;background:#10B981;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;margin-right:3px">✓ Duyệt</button>`
                   : ''}
                 <button onclick="adminResetPass('${u.username}')"
-                  style="height:26px;padding:0 8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">
+                  style="height:24px;padding:0 7px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">
                   🔑 Reset
                 </button>
               </td>
             </tr>`).join('')}
         </tbody>
-      </table>`;
-  } catch(e) { el.innerHTML='<div class="loading">Lỗi tải users</div>'; }
+      </table>
+      <div style="padding:8px 14px;font-size:11px;color:#9CA3AF;border-top:1px solid #F1F5F9">
+        ✅ = Đã kích hoạt web  ·  🌐 = Admin nhấn để kích hoạt (không cần sửa Firebase Rules)
+      </div>`;
+  } catch(e) { el.innerHTML='<div class="loading">Lỗi tải users: '+e.message+'</div>'; }
 }
+
+async function adminActivateWeb(username) {
+  const pass = prompt('Đặt mật khẩu web cho "' + username + '":\n(User sẽ dùng mật khẩu này để đăng nhập web)\nTối thiểu 4 ký tự:');
+  if (!pass || pass.length < 4) { showToast('❌ Mật khẩu tối thiểu 4 ký tự!','#EF4444'); return; }
+  try {
+    const hash = await sha256(pass);
+    const r = await fetch(`${FB_URL}/Users/${username}/PasswordWeb.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(hash)
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    showToast('✅ Đã kích hoạt web cho ' + username + '! Mật khẩu: ' + pass, '#059669');
+    loadAdminUsers();
+  } catch(e) { showToast('❌ Lỗi: ' + e.message,'#EF4444'); }
+}
+
 
 async function approveUser(username) {
   try {
