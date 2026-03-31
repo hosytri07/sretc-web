@@ -336,16 +336,32 @@ body.dark #editProjModal > div{background:#1E293B}
   
 <!-- Mobile nav -->
 <div id="mobileNav" style="display:none;position:fixed;top:52px;left:0;right:0;
-     background:#0F172A;z-index:200;padding:8px 0;flex-direction:column">
+     background:#0F172A;z-index:200;padding:8px 0;flex-direction:column;max-height:80vh;overflow-y:auto">
   <button onclick="showPage('dash');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🏠 Dashboard</button>
   <button onclick="showPage('projects');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">📁 Dự án</button>
   <button onclick="showPage('chat');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🤖 Chatbot AI</button>
   <button onclick="showPage('library');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">📚 Thư viện</button>
   <button onclick="showPage('coords');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🗺️ Toạ độ</button>
+  <button onclick="showPage('estimate');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">💰 Dự toán</button>
+  <button onclick="showPage('report');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">📋 Báo cáo</button>
   <button onclick="showPage('profile');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">👤 Hồ sơ</button>
   <button onclick="showPage('feedback');toggleMobileMenu()" style="background:transparent;border:none;color:#CBD5E1;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">💬 Góp ý</button>
+  <button id="mobileAdminBtn" onclick="showPage('admin');toggleMobileMenu()" style="display:none;background:transparent;border:none;color:#FCA5A5;padding:12px 20px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%">🛡️ Admin</button>
 </div>
 </nav>
+
+<!-- Network offline banner -->
+<div id="offlineBanner" style="display:none;position:fixed;top:52px;left:0;right:0;z-index:400;
+  background:#EF4444;color:#fff;text-align:center;padding:8px;font-size:13px;font-weight:600">
+  📶 Mất kết nối mạng — Một số tính năng có thể không hoạt động
+</div>
+
+<!-- Scroll to top button -->
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+  style="display:none;position:fixed;bottom:24px;right:24px;z-index:300;
+    width:42px;height:42px;border-radius:50%;background:#1E3A8A;color:#fff;
+    border:none;font-size:18px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);
+    align-items:center;justify-content:center" title="Lên đầu trang">↑</button>
 
   <div class="main-content">
 
@@ -1100,10 +1116,41 @@ function showApp() {
   const initials = av.length > 1 ? av[0][0]+av[av.length-1][0] : av[0][0];
   document.getElementById('topAvatar').textContent = initials.toUpperCase();
   document.getElementById('topName').textContent = currentUser.fullName;
+  // Show mobile admin button if admin
+  const mab = document.getElementById('mobileAdminBtn');
+  if (mab && currentUser.role === 'Admin') mab.style.display = '';
   loadDashboard();
   loadLib('TCVN', null);
   loadUnreadCount();
 }
+
+// ── Offline/Online detection ──────────────────────────────────────
+window.addEventListener('online',  () => {
+  const b = document.getElementById('offlineBanner');
+  if (b) b.style.display = 'none';
+  showToast('✅ Đã kết nối lại mạng!', '#059669');
+});
+window.addEventListener('offline', () => {
+  const b = document.getElementById('offlineBanner');
+  if (b) b.style.display = 'block';
+  showToast('📶 Mất kết nối mạng!', '#EF4444');
+});
+if (!navigator.onLine) {
+  const b = document.getElementById('offlineBanner');
+  if (b) b.style.display = 'block';
+}
+
+// ── Scroll to top button ──────────────────────────────────────────
+document.querySelector('.main-content')?.addEventListener('scroll', function() {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  btn.style.display = this.scrollTop > 300 ? 'flex' : 'none';
+});
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+});
 
 // Welcome toast
 function showToast(msg, color) {
