@@ -1045,99 +1045,61 @@ async function fbGet(path) {
 let currentUser = null;
 
 async function doLogin() {
-  const u = document.getElementById('inpUser').value.trim();
-  const p = document.getElementById('inpPass').value;
+  const u   = document.getElementById('inpUser').value.trim();
+  const p   = document.getElementById('inpPass').value;
   const msg = document.getElementById('authMsg');
-  if (!u || !p) { msg.textContent = 'Vui lòng nhập đầy đủ!'; return; }
-  msg.textContent = '⏳ Đang xác thực...';
-  msg.style.color = '#6B7280';
+  const btn = document.getElementById('btnLogin');
+  if (!u || !p) { msg.textContent='Vui lòng nhập đầy đủ!'; return; }
+  msg.textContent='⏳ Đang xác thực...'; msg.style.color='#6B7280';
+  if(btn) btn.disabled=true;
 
   try {
     let data;
-    try {
-      data = await fbGet('Users/' + u);
-    } catch(fetchErr) {
-      msg.textContent = '❌ Không kết nối được Firebase. Kiểm tra mạng và FB_URL.';
-      msg.style.color = '#DC2626';
-      console.error('Firebase fetch error:', fetchErr);
-      return;
+    try { data = await fbGet('Users/'+u); }
+    catch(fe) {
+      const s = fe.message||'';
+      msg.innerHTML = (s.includes('401')||s.includes('403'))
+        ? '<span style="color:#DC2626">❌ Firebase Rules chưa cho phép đọc Users.<br>Vào <a href="https://console.firebase.google.com" target="_blank" style="color:#1E40AF">Firebase Console</a> → Rules → set <code>.read:true</code> cho Users.</span>'
+        : '<span style="color:#DC2626">❌ Lỗi kết nối Firebase: '+s+'</span>';
+      if(btn) btn.disabled=false; return;
     }
 
-    if (!data) {
-      msg.textContent = '❌ Tài khoản không tồn tại!';
-      msg.style.color = '#DC2626';
-      return;
-    }
+    if (!data) { msg.textContent='❌ Tài khoản không tồn tại!'; msg.style.color='#DC2626'; if(btn)btn.disabled=false; return; }
+    if (data.IsApproved===false) { msg.textContent='❌ Chưa được Admin phê duyệt!'; msg.style.color='#DC2626'; if(btn)btn.disabled=false; return; }
 
-    // Check approval
-    if (data.IsApproved === false) {
-      msg.textContent = '❌ Tài khoản chưa được Admin phê duyệt!';
-      msg.style.color = '#DC2626';
-      return;
-    }
-
-    const storedWeb = data.PasswordWeb || '';
+    const storedWeb = data.PasswordWeb||'';
     const hash256   = await sha256(p);
 
     if (storedWeb) {
-      // Normal login: check SHA256
-      if (storedWeb !== hash256) {
-        msg.textContent = '❌ Sai mật khẩu!';
-        msg.style.color = '#DC2626';
-        return;
-      }
+      if (storedWeb !== hash256) { msg.textContent='❌ Sai mật khẩu web!'; msg.style.color='#DC2626'; if(btn)btn.disabled=false; return; }
     } else {
-      // Lần đầu đăng nhập web — cần set PasswordWeb
-      msg.textContent = '⏳ Lần đầu đăng nhập web — đang kích hoạt...';
-      try {
-        const wr = await fetch(`${FB_URL}/Users/${u}/PasswordWeb.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(hash256)
-        });
-        if (!wr.ok) throw new Error('HTTP ' + wr.status);
-
-        // Verify
-        const check = await fbGet('Users/' + u + '/PasswordWeb');
-        if (check !== hash256) throw new Error('Verify failed');
-
-        showToast('✅ Tài khoản đã kích hoạt Web!', '#059669');
-      } catch(writeErr) {
-        // Firebase Rules blocking write — show clear instructions
-        msg.innerHTML = `
-          <div style="color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;font-size:12px;text-align:left">
-            <strong>⚠️ Cần cấu hình Firebase Rules</strong><br><br>
-            Lần đầu đăng nhập web cần cho phép write tạm thời:<br><br>
-            <code style="background:#FDE68A;padding:2px 4px;border-radius:3px;font-size:11px">
-              "rules": { "Users": { "$uid": { ".read": true, ".write": true } } }
-            </code><br><br>
-            1. Vào <a href="https://console.firebase.google.com" target="_blank" style="color:#1E40AF">Firebase Console</a><br>
-            2. Realtime Database → Rules → Paste rule trên → Publish<br>
-            3. Đăng nhập lại (1 lần)<br>
-            4. Sau đó đổi lại .write: false để bảo mật
-          </div>`;
-        return;
+      // Chưa có PasswordWeb — thử tự kích hoạt
+      msg.textContent='⏳ Lần đầu — đang kích hoạt...';
+      const wr = await fetch(`${FB_URL}/Users/${u}/PasswordWeb.json`,{
+        method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(hash256)
+      });
+      if (!wr.ok) {
+        msg.innerHTML=`<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:6px;font-size:12px;text-align:left">
+          <strong style="color:#92400E">⚠️ Tài khoản chưa kích hoạt web</strong><br><br>
+          <strong>Cách 1 (Desktop):</strong> Admin vào <strong>AdminPage → Bảng Users → 🔑 Reset</strong> cho tài khoản này<br><br>
+          <strong>Cách 2 (Web):</strong> Admin đăng nhập web → <strong>Admin → Users → 🌐 Kích hoạt</strong><br><br>
+          <strong>Cách 3 (Firebase Console):</strong> Thêm field <code>PasswordWeb</code> = SHA256 của mật khẩu cho user ${u}
+        </div>`;
+        if(btn)btn.disabled=false; return;
       }
     }
 
-    // Login success
-    currentUser = {
-      username: u,
-      fullName: data.FullName || u,
-      role: data.Role || 'User'
-    };
+    currentUser = { username:u, fullName:data.FullName||u, role:data.Role||'User' };
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
-    msg.textContent = '✅ Đăng nhập thành công!';
-    msg.style.color = '#059669';
-    showApp();
-    updateAdminNav();
-    setTimeout(()=>showToast('👋 Chào mừng, ' + (data.FullName||u) + '!', '#059669'), 300);
+    msg.textContent='✅ Đăng nhập thành công!'; msg.style.color='#059669';
+    showApp(); updateAdminNav();
+    setTimeout(()=>showToast('👋 Chào mừng, '+(data.FullName||u)+'!','#059669'),300);
   } catch(e) {
-    msg.textContent = '❌ Lỗi: ' + e.message;
-    msg.style.color = '#DC2626';
-    console.error('Login error:', e);
-  }
+    msg.innerHTML='<span style="color:#DC2626">❌ '+e.message+'</span>';
+    console.error(e);
+  } finally { if(btn)btn.disabled=false; }
 }
+
 
 async function sha256(msg) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
