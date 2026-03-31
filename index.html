@@ -50,7 +50,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-primary{width:100%;height:42px;background:var(--blue);color:#fff;border:none;
   border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;margin-top:6px}
 .btn-primary:hover{background:var(--accent)}
-#authMsg{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:18px}
+#authMsg{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:18px;line-height:1.5}
 
 /* ── App Layout ───────────────────────────────────────────────── */
 #app{display:none;flex:1;flex-direction:column;height:100vh}
@@ -249,13 +249,15 @@ body.dark #editProjModal > div{background:#1E293B}
     <h2>Đăng nhập hệ thống</h2>
     <div class="field">
       <label>Tài khoản</label>
-      <input id="inpUser" type="text" placeholder="Nhập tên đăng nhập" autocomplete="username"/>
+      <input id="inpUser" type="text" placeholder="Nhập tên đăng nhập" autocomplete="username"
+        onkeydown="if(event.key==='Enter') document.getElementById('inpPass').focus()"/>
     </div>
     <div class="field">
       <label>Mật khẩu</label>
-      <input id="inpPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"/>
+      <input id="inpPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter') doLogin()"/>
     </div>
-    <button class="btn-primary" onclick="doLogin()">🔐 Đăng nhập</button>
+    <button class="btn-primary" onclick="doLogin()" id="btnLogin">🔐 Đăng nhập</button>
     <div style="text-align:center;margin-top:12px">
       <a href="#" onclick="showForgotPassword()" 
          style="font-size:12px;color:#3B82F6;text-decoration:none;font-weight:600">
@@ -1048,52 +1050,92 @@ async function doLogin() {
   const msg = document.getElementById('authMsg');
   if (!u || !p) { msg.textContent = 'Vui lòng nhập đầy đủ!'; return; }
   msg.textContent = '⏳ Đang xác thực...';
+  msg.style.color = '#6B7280';
+
   try {
-    const data = await fbGet('Users/' + u);
-    if (!data) { msg.textContent = '❌ Tài khoản không tồn tại!'; return; }
+    let data;
+    try {
+      data = await fbGet('Users/' + u);
+    } catch(fetchErr) {
+      msg.textContent = '❌ Không kết nối được Firebase. Kiểm tra mạng và FB_URL.';
+      msg.style.color = '#DC2626';
+      console.error('Firebase fetch error:', fetchErr);
+      return;
+    }
+
+    if (!data) {
+      msg.textContent = '❌ Tài khoản không tồn tại!';
+      msg.style.color = '#DC2626';
+      return;
+    }
 
     // Check approval
     if (data.IsApproved === false) {
-      msg.textContent = '❌ Tài khoản chưa được Admin phê duyệt!'; return;
+      msg.textContent = '❌ Tài khoản chưa được Admin phê duyệt!';
+      msg.style.color = '#DC2626';
+      return;
     }
 
-    // Verify password: PasswordWeb (SHA256) hoặc tự kích hoạt lần đầu
-    const storedWeb    = data.PasswordWeb || '';
-    const storedBcrypt = data.Password    || '';
-    const hash256      = await sha256(p);
+    const storedWeb = data.PasswordWeb || '';
+    const hash256   = await sha256(p);
 
     if (storedWeb) {
-      // Normal: check SHA256
-      if (storedWeb !== hash256) { msg.textContent = '❌ Sai mật khẩu!'; return; }
+      // Normal login: check SHA256
+      if (storedWeb !== hash256) {
+        msg.textContent = '❌ Sai mật khẩu!';
+        msg.style.color = '#DC2626';
+        return;
+      }
     } else {
-      // Lần đầu: chưa có PasswordWeb → ghi SHA256 lên Firebase (self-activate)
-      msg.textContent = '⏳ Kích hoạt tài khoản web lần đầu...';
+      // Lần đầu đăng nhập web — cần set PasswordWeb
+      msg.textContent = '⏳ Lần đầu đăng nhập web — đang kích hoạt...';
       try {
-        const writeUrl = `${FB_URL}/Users/${u}/PasswordWeb.json`;
-        const wr = await fetch(writeUrl, {
+        const wr = await fetch(`${FB_URL}/Users/${u}/PasswordWeb.json`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(hash256)
         });
-        if (!wr.ok) throw new Error('Write failed ' + wr.status);
-        // Verify write succeeded by reading back
+        if (!wr.ok) throw new Error('HTTP ' + wr.status);
+
+        // Verify
         const check = await fbGet('Users/' + u + '/PasswordWeb');
-        if (check !== hash256) { msg.textContent = '❌ Không thể kích hoạt — kiểm tra Firebase Rules (cần .write=true cho Users/{uid}/PasswordWeb)'; return; }
-        showToast('✅ Tài khoản đã kích hoạt Web thành công!', '#059669');
-      } catch(e) {
-        // Write failed (Firebase rules blocking) → show helpful message
-        msg.textContent = '⚠️ Chưa kích hoạt web. Vào Firebase Console → Rules → cho phép write Users node, đăng nhập 1 lần, rồi lock lại.';
+        if (check !== hash256) throw new Error('Verify failed');
+
+        showToast('✅ Tài khoản đã kích hoạt Web!', '#059669');
+      } catch(writeErr) {
+        // Firebase Rules blocking write — show clear instructions
+        msg.innerHTML = `
+          <div style="color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;font-size:12px;text-align:left">
+            <strong>⚠️ Cần cấu hình Firebase Rules</strong><br><br>
+            Lần đầu đăng nhập web cần cho phép write tạm thời:<br><br>
+            <code style="background:#FDE68A;padding:2px 4px;border-radius:3px;font-size:11px">
+              "rules": { "Users": { "$uid": { ".read": true, ".write": true } } }
+            </code><br><br>
+            1. Vào <a href="https://console.firebase.google.com" target="_blank" style="color:#1E40AF">Firebase Console</a><br>
+            2. Realtime Database → Rules → Paste rule trên → Publish<br>
+            3. Đăng nhập lại (1 lần)<br>
+            4. Sau đó đổi lại .write: false để bảo mật
+          </div>`;
         return;
       }
     }
-    currentUser = { username: u, fullName: data.FullName || u, role: data.Role || 'User' };
+
+    // Login success
+    currentUser = {
+      username: u,
+      fullName: data.FullName || u,
+      role: data.Role || 'User'
+    };
     sessionStorage.setItem('sretc_user', JSON.stringify(currentUser));
+    msg.textContent = '✅ Đăng nhập thành công!';
+    msg.style.color = '#059669';
     showApp();
     updateAdminNav();
-    setTimeout(()=>showToast('👋 Chào mừng, ' + (data.FullName||u) + '!', '#059669'), 500);
+    setTimeout(()=>showToast('👋 Chào mừng, ' + (data.FullName||u) + '!', '#059669'), 300);
   } catch(e) {
-    msg.textContent = '❌ Lỗi kết nối Firebase. Kiểm tra cấu hình FB_URL.';
-    console.error(e);
+    msg.textContent = '❌ Lỗi: ' + e.message;
+    msg.style.color = '#DC2626';
+    console.error('Login error:', e);
   }
 }
 
